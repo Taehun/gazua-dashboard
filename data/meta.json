@@ -1,0 +1,39 @@
+{
+ "schema_version": 1,
+ "title": "가즈아 (GAZUA)",
+ "subtitle": "한국 주식 레짐 기반 자동매매 에이전트",
+ "mode": "paper",
+ "demo": true,
+ "currency": "KRW",
+ "initial_capital": 100000000.0,
+ "inception": "2025-03-28",
+ "benchmark": "KOSPI 200",
+ "universe": [
+  {
+   "ticker": "069500",
+   "name": "KODEX 200",
+   "role": "long"
+  },
+  {
+   "ticker": "122630",
+   "name": "KODEX 레버리지",
+   "role": "long_2x"
+  },
+  {
+   "ticker": "166400",
+   "name": "TIGER 200커버드콜5%OTM",
+   "role": "covered_call"
+  },
+  {
+   "ticker": "114800",
+   "name": "KODEX 인버스",
+   "role": "inverse"
+  },
+  {
+   "ticker": "252670",
+   "name": "KODEX 200선물인버스2X",
+   "role": "inverse_2x"
+  }
+ ],
+ "updated_at": "2026-06-08T00:25:59+09:00"
+}

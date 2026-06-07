@@ -1,0 +1,62 @@
+{
+ "schema_version": 1,
+ "month": "2025-03",
+ "trades": [
+  {
+   "ts": "2025-03-28T09:00:00+09:00",
+   "cycle_id": "2025-03-28-bt",
+   "ticker": "069500",
+   "name": "KODEX 200",
+   "side": "buy",
+   "qty": 385,
+   "price": 34603.22,
+   "amount": 13322241,
+   "status": "filled",
+   "reason": "rebalance 0.000→0.133",
+   "liquidation": false,
+   "regime": "neutral"
+  },
+  {
+   "ts": "2025-03-28T09:00:00+09:00",
+   "cycle_id": "2025-03-28-bt",
+   "ticker": "166400",
+   "name": "TIGER 200커버드콜5%OTM",
+   "side": "buy",
+   "qty": 2165,
+   "price": 12327.19,
+   "amount": 26688370,
+   "status": "filled",
+   "reason": "rebalance 0.000→0.267",
+   "liquidation": false,
+   "regime": "neutral"
+  },
+  {
+   "ts": "2025-03-28T09:00:00+09:00",
+   "cycle_id": "2025-03-28-bt",
+   "ticker": "114800",
+   "name": "KODEX 인버스",
+   "side": "buy",
+   "qty": 2061,
+   "price": 4369.32,
+   "amount": 9005171,
+   "status": "filled",
+   "reason": "rebalance 0.000→0.090",
+   "liquidation": false,
+   "regime": "neutral"
+  },
+  {
+   "ts": "2025-03-31T09:00:00+09:00",
+   "cycle_id": "2025-03-31-bt",
+   "ticker": "166400",
+   "name": "TIGER 200커버드콜5%OTM",
+   "side": "buy",
+   "qty": 807,
+   "price": 12022.83,
+   "amount": 9702420,
+   "status": "filled",
+   "reason": "rebalance 0.262→0.360",
+   "liquidation": false,
+   "regime": "neutral"
+  }
+ ]
+}

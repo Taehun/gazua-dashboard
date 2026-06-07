@@ -1,0 +1,533 @@
+/* ═══════════════════════════════════════════════════════════
+   가즈아 (GAZUA) 대시보드 — 의존성 0, 수제 SVG 차트
+   data/*.json → KPI · 자산 추이(레짐 밴드) · 드로다운 · 월별 · 매매 테이블
+   ═══════════════════════════════════════════════════════════ */
+"use strict";
+
+const REGIME_LABEL = {
+  strong_bull: "강세 가속", bull: "강세", neutral: "중립",
+  bear: "약세", crash: "급락", panic: "패닉", halt: "중단",
+};
+const REGIME_VAR = {
+  strong_bull: "--rg-strong-bull", bull: "--rg-bull", neutral: "--rg-neutral",
+  bear: "--rg-bear", crash: "--rg-crash", panic: "--rg-panic", halt: "--rg-halt",
+};
+
+const $ = (sel, el = document) => el.querySelector(sel);
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+const fmtPct = (x, digits = 1) =>
+  (x >= 0 ? "+" : "") + (x * 100).toFixed(digits) + "%";
+const fmtKRW = (x) => {
+  const abs = Math.abs(x);
+  if (abs >= 1e8) return (x / 1e8).toFixed(2) + "억";
+  if (abs >= 1e4) return Math.round(x / 1e4).toLocaleString("ko-KR") + "만";
+  return Math.round(x).toLocaleString("ko-KR");
+};
+const fmtNum = (x) => x.toLocaleString("ko-KR");
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* ── 데이터 로드 ──────────────────────────────────────────── */
+async function fetchJSON(path) {
+  const res = await fetch(path, { cache: "no-cache" });
+  if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
+  return res.json();
+}
+
+async function loadAll() {
+  const [meta, equity, tradesIdx] = await Promise.all([
+    fetchJSON("data/meta.json"),
+    fetchJSON("data/equity.json"),
+    fetchJSON("data/trades/index.json"),
+  ]);
+  const months = (tradesIdx.months || []).slice().sort().reverse();
+  const monthFiles = await Promise.all(
+    months.map((m) => fetchJSON(`data/trades/${m}.json`).catch(() => null))
+  );
+  const trades = monthFiles.filter(Boolean)
+    .flatMap((f) => f.trades || [])
+    .sort((a, b) => (a.ts < b.ts ? 1 : -1));
+  return { meta, series: equity.series || [], months, trades };
+}
+
+/* ── 지표 계산 ───────────────────────────────────────────── */
+function computeMetrics(series, initialCapital) {
+  if (series.length < 2) return null;
+  const first = series[0], last = series[series.length - 1];
+  const base = initialCapital || first.value;
+  const totalReturn = last.value / base - 1;
+  const years = series.length / 252;
+  const cagr = years > 0 ? Math.pow(last.value / base, 1 / years) - 1 : 0;
+
+  const rets = [];
+  for (let i = 1; i < series.length; i++)
+    rets.push(series[i].value / series[i - 1].value - 1);
+  const mean = rets.reduce((a, b) => a + b, 0) / rets.length;
+  const sd = Math.sqrt(rets.reduce((a, b) => a + (b - mean) ** 2, 0) / (rets.length - 1));
+  const sharpe = sd > 0 ? (mean / sd) * Math.sqrt(252) : 0;
+  const winRate = rets.filter((r) => r > 0).length / rets.length;
+
+  let peak = -Infinity, mdd = 0;
+  const dd = series.map((p) => {
+    peak = Math.max(peak, p.value);
+    const d = p.value / peak - 1;
+    mdd = Math.min(mdd, d);
+    return { date: p.date, dd: d };
+  });
+
+  let benchReturn = null;
+  if (first.benchmark && last.benchmark)
+    benchReturn = last.benchmark / first.benchmark - 1;
+
+  return { totalReturn, cagr, sharpe, winRate, mdd, dd, benchReturn,
+           lastValue: last.value, days: series.length };
+}
+
+function monthlyReturns(series) {
+  const out = [];
+  let prevEnd = null, curMonth = null, lastPoint = null;
+  for (const p of series) {
+    const m = p.date.slice(0, 7);
+    if (curMonth !== null && m !== curMonth) {
+      out.push({ month: curMonth, ret: lastPoint.value / (prevEnd ?? series[0].value) - 1 });
+      prevEnd = lastPoint.value;
+    }
+    if (curMonth === null) prevEnd = p.value;
+    curMonth = m;
+    lastPoint = p;
+  }
+  if (curMonth) out.push({ month: curMonth, ret: lastPoint.value / (prevEnd ?? series[0].value) - 1 });
+  return out;
+}
+
+/* ── SVG 헬퍼 ───────────────────────────────────────────── */
+const NS = "http://www.w3.org/2000/svg";
+function svgEl(tag, attrs = {}) {
+  const el = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+function niceTicks(min, max, n = 5) {
+  const span = max - min || 1;
+  const step0 = span / n;
+  const mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => span / s <= n) || mag * 10;
+  const ticks = [];
+  for (let t = Math.ceil(min / step) * step; t <= max + 1e-9; t += step) ticks.push(t);
+  return ticks;
+}
+
+function dateLabel(iso) { return iso.slice(2).replace(/-/g, "."); }
+
+/* ── 자산 추이 차트 ──────────────────────────────────────── */
+function renderEquityChart(host, series, tooltip) {
+  host.innerHTML = "";
+  if (series.length < 2) {
+    host.innerHTML = '<p class="loading">표시할 데이터가 부족합니다</p>';
+    return;
+  }
+  const W = 1000, H = 380, M = { t: 14, r: 16, b: 26, l: 56 };
+  const iw = W - M.l - M.r, ih = H - M.t - M.b;
+
+  const base = series[0].value;
+  const benchBase = series[0].benchmark;
+  const port = series.map((p) => p.value / base - 1);
+  const bench = benchBase
+    ? series.map((p) => (p.benchmark ? p.benchmark / benchBase - 1 : null))
+    : null;
+
+  let lo = Math.min(0, ...port), hi = Math.max(0, ...port);
+  if (bench) {
+    const bs = bench.filter((v) => v !== null);
+    lo = Math.min(lo, ...bs); hi = Math.max(hi, ...bs);
+  }
+  const pad = (hi - lo) * 0.06 || 0.01;
+  lo -= pad; hi += pad;
+
+  const x = (i) => M.l + (i / (series.length - 1)) * iw;
+  const y = (v) => M.t + (1 - (v - lo) / (hi - lo)) * ih;
+
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, "aria-hidden": "true" });
+
+  // 그라디언트
+  const defs = svgEl("defs");
+  defs.innerHTML =
+    `<linearGradient id="area-grad" x1="0" y1="0" x2="0" y2="1">
+       <stop offset="0%" stop-color="${css("--up")}" stop-opacity=".18"/>
+       <stop offset="100%" stop-color="${css("--up")}" stop-opacity="0"/>
+     </linearGradient>`;
+  svg.appendChild(defs);
+
+  // 레짐 밴드 (연속 구간 병합 — 2일 미만 구간은 줄무늬 노이즈라 생략)
+  const minSeg = series.length > 60 ? 2 : 1;
+  let segStart = 0;
+  for (let i = 1; i <= series.length; i++) {
+    if (i === series.length || series[i].regime !== series[segStart].regime) {
+      const rg = series[segStart].regime;
+      const varName = REGIME_VAR[rg];
+      if (varName && i - segStart >= minSeg) {
+        svg.appendChild(svgEl("rect", {
+          x: x(segStart), y: M.t,
+          width: Math.max(x(Math.min(i, series.length - 1)) - x(segStart), 0.5),
+          height: ih, fill: css(varName) || "transparent",
+        }));
+      }
+      segStart = i;
+    }
+  }
+
+  // 그리드 + Y축 라벨
+  for (const t of niceTicks(lo, hi, 5)) {
+    svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(t), y2: y(t), class: "gridline" }));
+    const lbl = svgEl("text", { x: M.l - 8, y: y(t) + 3.5, "text-anchor": "end", class: "axis-label" });
+    lbl.textContent = fmtPct(t, 0);
+    svg.appendChild(lbl);
+  }
+
+  // X축 라벨 (5~6개)
+  const nx = Math.min(6, series.length);
+  for (let k = 0; k < nx; k++) {
+    const i = Math.round((k / (nx - 1)) * (series.length - 1));
+    const lbl = svgEl("text", {
+      x: x(i), y: H - 7,
+      "text-anchor": k === 0 ? "start" : k === nx - 1 ? "end" : "middle",
+      class: "axis-label",
+    });
+    lbl.textContent = dateLabel(series[i].date);
+    svg.appendChild(lbl);
+  }
+
+  // 0% 기준선
+  if (lo < 0 && hi > 0)
+    svg.appendChild(svgEl("line", {
+      x1: M.l, x2: W - M.r, y1: y(0), y2: y(0),
+      stroke: css("--line-strong"), "stroke-width": 1,
+    }));
+
+  // 영역 + 라인
+  const lineD = port.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
+  svg.appendChild(svgEl("path", {
+    d: `${lineD}L${x(series.length - 1)},${y(lo)}L${x(0)},${y(lo)}Z`, class: "port-area",
+  }));
+
+  if (bench) {
+    const bD = bench.map((v, i) =>
+      v === null ? "" : `${i && bench[i - 1] !== null ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
+    svg.appendChild(svgEl("path", { d: bD, class: "bench-line" }));
+  }
+
+  const portPath = svgEl("path", { d: lineD, class: "port-line draw-in" });
+  svg.appendChild(portPath);
+
+  // 크로스헤어
+  const xline = svgEl("line", { class: "crosshair", y1: M.t, y2: M.t + ih, visibility: "hidden" });
+  const dotP = svgEl("circle", { r: 4, class: "cross-dot", visibility: "hidden" });
+  const dotB = svgEl("circle", { r: 3.5, class: "cross-dot bench", visibility: "hidden" });
+  svg.append(xline, dotP, dotB);
+
+  const overlay = svgEl("rect", {
+    x: M.l, y: M.t, width: iw, height: ih, fill: "transparent",
+  });
+  svg.appendChild(overlay);
+  host.appendChild(svg);
+
+  // 인트로 라인 길이
+  requestAnimationFrame(() => {
+    try {
+      const len = portPath.getTotalLength();
+      portPath.style.setProperty("--len", len);
+    } catch { /* 비표시 상태 등 */ }
+  });
+
+  const onMove = (ev) => {
+    const rect = svg.getBoundingClientRect();
+    const px = ((ev.clientX - rect.left) / rect.width) * W;
+    const i = Math.max(0, Math.min(series.length - 1,
+      Math.round(((px - M.l) / iw) * (series.length - 1))));
+    const p = series[i];
+    xline.setAttribute("x1", x(i)); xline.setAttribute("x2", x(i));
+    xline.setAttribute("visibility", "visible");
+    dotP.setAttribute("cx", x(i)); dotP.setAttribute("cy", y(port[i]));
+    dotP.setAttribute("visibility", "visible");
+    if (bench && bench[i] !== null) {
+      dotB.setAttribute("cx", x(i)); dotB.setAttribute("cy", y(bench[i]));
+      dotB.setAttribute("visibility", "visible");
+    } else dotB.setAttribute("visibility", "hidden");
+
+    tooltip.innerHTML =
+      `<div class="tt-date">${esc(p.date)}</div>` +
+      `<div><span class="${port[i] >= 0 ? "pos" : "neg"}">${fmtPct(port[i])}</span>` +
+      ` · ₩${fmtKRW(p.value)}</div>` +
+      (bench && bench[i] !== null
+        ? `<div style="color:${css("--gold")}">벤치 ${fmtPct(bench[i])}</div>` : "") +
+      `<div class="tt-regime">${esc(REGIME_LABEL[p.regime] || p.regime || "")}</div>`;
+    tooltip.hidden = false;
+    const tw = tooltip.offsetWidth;
+    const left = Math.min(ev.clientX + 14, window.innerWidth - tw - 10);
+    tooltip.style.left = left + "px";
+    tooltip.style.top = (ev.clientY + 16) + "px";
+  };
+  const onLeave = () => {
+    tooltip.hidden = true;
+    for (const el of [xline, dotP, dotB]) el.setAttribute("visibility", "hidden");
+  };
+  overlay.addEventListener("mousemove", onMove);
+  overlay.addEventListener("mouseleave", onLeave);
+  overlay.addEventListener("touchstart", (e) => onMove(e.touches[0]), { passive: true });
+  overlay.addEventListener("touchmove", (e) => onMove(e.touches[0]), { passive: true });
+  overlay.addEventListener("touchend", onLeave);
+}
+
+/* ── 드로다운 차트 ───────────────────────────────────────── */
+function renderDrawdown(host, dd) {
+  host.innerHTML = "";
+  const W = 500, H = 200, M = { t: 10, r: 12, b: 22, l: 44 };
+  const iw = W - M.l - M.r, ih = H - M.t - M.b;
+  const lo = Math.min(...dd.map((d) => d.dd), -0.01) * 1.08;
+
+  const x = (i) => M.l + (i / (dd.length - 1)) * iw;
+  const y = (v) => M.t + (v / lo) * ih;
+
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, "aria-hidden": "true" });
+
+  for (const t of niceTicks(lo, 0, 4)) {
+    svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(t), y2: y(t), class: "gridline" }));
+    const lbl = svgEl("text", { x: M.l - 6, y: y(t) + 3, "text-anchor": "end", class: "axis-label" });
+    lbl.textContent = Math.round(t * 100) + "%";
+    svg.appendChild(lbl);
+  }
+  const nx = 4;
+  for (let k = 0; k < nx; k++) {
+    const i = Math.round((k / (nx - 1)) * (dd.length - 1));
+    const lbl = svgEl("text", {
+      x: x(i), y: H - 5,
+      "text-anchor": k === 0 ? "start" : k === nx - 1 ? "end" : "middle",
+      class: "axis-label",
+    });
+    lbl.textContent = dateLabel(dd[i].date);
+    svg.appendChild(lbl);
+  }
+
+  const d = dd.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.dd).toFixed(1)}`).join("");
+  svg.appendChild(svgEl("path", {
+    d: `M${x(0)},${y(0)}${d.replace(/^M/, "L")}L${x(dd.length - 1)},${y(0)}Z`,
+    class: "dd-area",
+  }));
+  host.appendChild(svg);
+}
+
+/* ── 월별 수익률 차트 ────────────────────────────────────── */
+function renderMonthly(host, months) {
+  host.innerHTML = "";
+  const W = 500, H = 200, M = { t: 14, r: 12, b: 24, l: 44 };
+  const iw = W - M.l - M.r, ih = H - M.t - M.b;
+  const lo = Math.min(0, ...months.map((m) => m.ret)) * 1.15 - 0.001;
+  const hi = Math.max(0, ...months.map((m) => m.ret)) * 1.15 + 0.001;
+
+  const y = (v) => M.t + (1 - (v - lo) / (hi - lo)) * ih;
+  const bw = iw / months.length;
+
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, "aria-hidden": "true" });
+
+  for (const t of niceTicks(lo, hi, 4)) {
+    svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(t), y2: y(t), class: "gridline" }));
+    const lbl = svgEl("text", { x: M.l - 6, y: y(t) + 3, "text-anchor": "end", class: "axis-label" });
+    lbl.textContent = Math.round(t * 100) + "%";
+    svg.appendChild(lbl);
+  }
+
+  months.forEach((m, i) => {
+    const positive = m.ret >= 0;
+    const bx = M.l + i * bw + bw * 0.18;
+    const by = positive ? y(m.ret) : y(0);
+    const bh = Math.max(Math.abs(y(m.ret) - y(0)), 1);
+    const rect = svgEl("rect", {
+      x: bx.toFixed(1), y: by.toFixed(1),
+      width: (bw * 0.64).toFixed(1), height: bh.toFixed(1),
+      rx: 2, fill: positive ? css("--up") : css("--down"),
+      opacity: ".85",
+    });
+    const title = svgEl("title");
+    title.textContent = `${m.month} ${fmtPct(m.ret)}`;
+    rect.appendChild(title);
+    svg.appendChild(rect);
+
+    // 라벨 (밀도에 따라 건너뜀)
+    const step = Math.ceil(months.length / 8);
+    if (i % step === 0) {
+      const lbl = svgEl("text", {
+        x: bx + bw * 0.32, y: H - 6, "text-anchor": "middle", class: "axis-label",
+      });
+      lbl.textContent = m.month.slice(2).replace("-", ".");
+      svg.appendChild(lbl);
+    }
+  });
+
+  svg.appendChild(svgEl("line", {
+    x1: M.l, x2: W - M.r, y1: y(0), y2: y(0),
+    stroke: css("--line-strong"), "stroke-width": 1,
+  }));
+  host.appendChild(svg);
+}
+
+/* ── KPI ────────────────────────────────────────────────── */
+function renderKPIs(host, m, meta, tradeCount) {
+  const sign = (v) => (v >= 0 ? "pos" : "neg");
+  const items = [
+    { label: "총 자산", value: "₩" + fmtKRW(m.lastValue), cls: "",
+      sub: `원금 ₩${fmtKRW(meta.initial_capital)}` },
+    { label: "누적 수익률", value: fmtPct(m.totalReturn), cls: sign(m.totalReturn),
+      sub: m.benchReturn !== null ? `벤치 ${fmtPct(m.benchReturn)}` : "" },
+    { label: "CAGR", value: fmtPct(m.cagr), cls: sign(m.cagr),
+      sub: `${m.days}거래일` },
+    { label: "최대 낙폭", value: fmtPct(m.mdd), cls: "neg", sub: "고점 대비" },
+    { label: "샤프 지수", value: m.sharpe.toFixed(2), cls: "",
+      sub: "연환산" },
+    { label: "일 승률", value: (m.winRate * 100).toFixed(1) + "%", cls: "",
+      sub: `매매 ${fmtNum(tradeCount)}건` },
+  ];
+  host.innerHTML = items.map((it) => `
+    <dl class="kpi">
+      <dt>${it.label}</dt>
+      <dd class="${it.cls}">${it.value}${it.sub ? `<span class="sub">${it.sub}</span>` : ""}</dd>
+    </dl>`).join("");
+}
+
+/* ── 매매 테이블 ─────────────────────────────────────────── */
+const PAGE = 20;
+
+function renderTrades(state) {
+  const { trades, side, month, shown } = state;
+  const body = $("#trades-body");
+  const filtered = trades.filter((t) =>
+    (side === "all" || t.side === side) &&
+    (month === "all" || t.ts.slice(0, 7) === month));
+
+  $("#trades-desc").textContent =
+    `${fmtNum(filtered.length)}건` + (month !== "all" ? ` · ${month}` : " · 전체 기간");
+
+  if (!filtered.length) {
+    body.innerHTML = `<tr class="empty-row"><td colspan="8">조건에 맞는 매매 내역이 없습니다</td></tr>`;
+    $("#trades-more").hidden = true;
+    return;
+  }
+
+  const rows = filtered.slice(0, shown).map((t) => {
+    const dt = t.ts.slice(0, 16).replace("T", " ");
+    const rgVar = REGIME_VAR[t.regime];
+    return `<tr>
+      <td class="td-date">${esc(dt)}</td>
+      <td class="td-name">${esc(t.name)}<span class="ticker">${esc(t.ticker)}</span></td>
+      <td><span class="side ${t.side === "buy" ? "buy" : "sell"}">${t.side === "buy" ? "매수" : "매도"}</span>${t.liquidation ? '<span class="liq">청산</span>' : ""}</td>
+      <td class="num">${fmtNum(t.qty)}</td>
+      <td class="num">${fmtNum(Math.round(t.price))}</td>
+      <td class="num">₩${fmtKRW(t.amount)}</td>
+      <td><span class="rg-chip" style="--chip:${rgVar ? `var(${rgVar})` : "var(--bg-raise-2)"}">${esc(REGIME_LABEL[t.regime] || t.regime || "—")}</span></td>
+      <td class="td-reason" title="${esc(t.reason || "")}">${esc(t.reason || "—")}</td>
+    </tr>`;
+  });
+  body.innerHTML = rows.join("");
+  $("#trades-more").hidden = filtered.length <= shown;
+}
+
+/* ── 부트스트랩 ──────────────────────────────────────────── */
+(async function main() {
+  const app = $("#app");
+  let data;
+  try {
+    data = await loadAll();
+  } catch (e) {
+    app.innerHTML = `<div class="error-box">
+      <strong>데이터를 불러오지 못했습니다.</strong><br>
+      ${esc(e.message)}<br><br>
+      아직 매매 기록이 없거나, 로컬에서 직접 연 경우 정적 서버가 필요합니다
+      (<code>python3 -m http.server</code>).</div>`;
+    app.removeAttribute("aria-busy");
+    return;
+  }
+
+  const { meta, series, months, trades } = data;
+
+  // 마스트헤드
+  const modeBadge = $("#mode-badge");
+  modeBadge.hidden = false;
+  if (meta.mode === "live") { modeBadge.textContent = "실거래"; modeBadge.classList.add("live"); }
+  else { modeBadge.textContent = "모의투자"; modeBadge.classList.add("paper"); }
+  if (meta.demo) $("#demo-badge").hidden = false;
+  if (meta.updated_at)
+    $("#updated-at").textContent = "갱신 " + meta.updated_at.slice(0, 16).replace("T", " ");
+
+  $("#foot-note").textContent = meta.demo
+    ? "⚠ 현재 표시 중인 데이터는 동일 전략의 실데이터 백테스트 출력(샘플)입니다. 실거래 기록이 아닙니다."
+    : (meta.mode === "live"
+        ? "실계좌 거래 기록입니다. 과거 수익률은 미래 수익을 보장하지 않습니다."
+        : "KIS 모의투자 계좌 기록입니다. 과거 수익률은 미래 수익을 보장하지 않습니다.");
+
+  if (!series.length) {
+    app.innerHTML = `<div class="error-box"><strong>아직 기록이 없습니다.</strong><br>
+      에이전트가 첫 매매를 실행하면 이곳에 수익률과 매매 내역이 나타납니다.</div>`;
+    app.removeAttribute("aria-busy");
+    return;
+  }
+
+  // 본문 템플릿 장착
+  app.innerHTML = "";
+  app.appendChild($("#tpl-dashboard").content.cloneNode(true));
+  app.removeAttribute("aria-busy");
+
+  const metrics = computeMetrics(series, meta.initial_capital);
+  renderKPIs($("#kpis"), metrics, meta, trades.length);
+
+  $("#bench-name").textContent = meta.benchmark || "벤치마크";
+  $("#legend-bench").textContent = meta.benchmark || "벤치마크";
+
+  // 레짐 범례 (등장한 레짐만)
+  const seen = [...new Set(series.map((p) => p.regime).filter(Boolean))];
+  $("#legend-regimes").innerHTML = seen.map((r) =>
+    `<span class="key-rg" style="--swatch:${`var(${REGIME_VAR[r] || "--bg-raise-2"})`}">${esc(REGIME_LABEL[r] || r)}</span>`).join("");
+
+  // 차트
+  const tooltip = $("#tooltip");
+  const sliceRange = (range) => {
+    if (range === "ALL") return series;
+    const n = { "1M": 21, "3M": 63, "6M": 126, "1Y": 252 }[range] || series.length;
+    return series.slice(-Math.min(n, series.length));
+  };
+  renderEquityChart($("#equity-chart"), series, tooltip);
+
+  $("#range-toggle").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-range]");
+    if (!btn) return;
+    for (const b of $("#range-toggle").children) b.classList.toggle("active", b === btn);
+    renderEquityChart($("#equity-chart"), sliceRange(btn.dataset.range), tooltip);
+  });
+
+  renderDrawdown($("#dd-chart"), metrics.dd);
+  $("#mdd-stat").innerHTML = `MDD <span class="neg">${fmtPct(metrics.mdd)}</span>`;
+
+  const mret = monthlyReturns(series);
+  renderMonthly($("#monthly-chart"), mret);
+  const winM = mret.filter((m) => m.ret > 0).length;
+  $("#monthly-stat").textContent = `${winM}/${mret.length}개월 플러스`;
+
+  // 매매 테이블
+  const state = { trades, side: "all", month: "all", shown: PAGE };
+  const sel = $("#month-select");
+  sel.innerHTML = `<option value="all">전체 월</option>` +
+    months.map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join("");
+  sel.addEventListener("change", () => {
+    state.month = sel.value; state.shown = PAGE; renderTrades(state);
+  });
+  $("#side-filter").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-side]");
+    if (!btn) return;
+    for (const b of $("#side-filter").children) b.classList.toggle("active", b === btn);
+    state.side = btn.dataset.side; state.shown = PAGE; renderTrades(state);
+  });
+  $("#trades-more").addEventListener("click", () => {
+    state.shown += PAGE; renderTrades(state);
+  });
+  renderTrades(state);
+})();
