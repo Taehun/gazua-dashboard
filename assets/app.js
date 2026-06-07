@@ -430,9 +430,7 @@ function renderBriefing(doc) {
   host.innerHTML = `
     <p class="brief-oneliner">${esc(doc.one_liner || "")}</p>
     <p class="brief-meta">${esc((doc.generated_at || "").slice(0, 16).replace("T", " "))} 생성</p>
-    <div class="brief-outlook">
-      <h3 class="brief-h">금일 시황 예상</h3>${outlook}
-    </div>
+    <div class="brief-outlook">${outlook}</div>
     ${doc.index_view ? `
       <h3 class="brief-h">지수 전망</h3>
       <div class="brief-outlook"><p>${esc(doc.index_view)}</p></div>` : ""}

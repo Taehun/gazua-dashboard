@@ -32,23 +32,11 @@
   <!-- ── KPI ───────────────────────────────────────────── -->
   <section class="kpis reveal" aria-label="핵심 지표" id="kpis"></section>
 
-  <!-- ── 모닝 브리프 ───────────────────────────────────── -->
-  <section class="panel reveal" aria-label="모닝 브리프" id="briefing-panel" hidden>
+  <!-- ── 운용 성과 ─────────────────────────────────────── -->
+  <section class="panel reveal" aria-label="운용 성과">
     <header class="panel-head">
       <div>
-        <h2>모닝 브리프 <span class="brief-badge" id="briefing-demo" hidden>샘플</span></h2>
-        <p class="panel-desc">개장 전 AI 리서치 — 금일 시황 예상 · 섹터 시각 (지수·매크로 레벨)</p>
-      </div>
-      <select id="briefing-select" aria-label="브리핑 날짜 선택"></select>
-    </header>
-    <div id="briefing-body"></div>
-  </section>
-
-  <!-- ── 자산 추이 ─────────────────────────────────────── -->
-  <section class="panel reveal" aria-label="자산 추이">
-    <header class="panel-head">
-      <div>
-        <h2>자산 추이</h2>
+        <h2>운용 성과</h2>
         <p class="panel-desc">포트폴리오 vs <span id="bench-name">벤치마크</span> · 배경 띠 = 레짐</p>
       </div>
       <div class="range-toggle" role="group" aria-label="기간 선택" id="range-toggle">
@@ -92,6 +80,18 @@
       <div class="chart-wrap chart-sm" id="monthly-chart" role="img" aria-label="월별 수익률 막대 차트"></div>
     </section>
   </div>
+
+  <!-- ── 금일 시황 예상 (개장 전 AI 리서치) ─────────────── -->
+  <section class="panel reveal" aria-label="금일 시황 예상" id="briefing-panel" hidden>
+    <header class="panel-head">
+      <div>
+        <h2>금일 시황 예상 <span class="brief-badge" id="briefing-demo" hidden>샘플</span></h2>
+        <p class="panel-desc">개장 전 AI 리서치 — 섹터·매크로·지수 레벨 (매 거래일 08:00 발행)</p>
+      </div>
+      <select id="briefing-select" aria-label="브리핑 날짜 선택"></select>
+    </header>
+    <div id="briefing-body"></div>
+  </section>
 
   <!-- ── 매매 히스토리 ─────────────────────────────────── -->
   <section class="panel reveal" aria-label="매매 히스토리">
