@@ -20,6 +20,41 @@
    "role": "long_2x"
   },
   {
+   "ticker": "091160",
+   "name": "KODEX 반도체",
+   "role": "long"
+  },
+  {
+   "ticker": "305720",
+   "name": "KODEX 2차전지산업",
+   "role": "long"
+  },
+  {
+   "ticker": "091170",
+   "name": "KODEX 은행",
+   "role": "long"
+  },
+  {
+   "ticker": "091180",
+   "name": "KODEX 자동차",
+   "role": "long"
+  },
+  {
+   "ticker": "229200",
+   "name": "KODEX 코스닥150",
+   "role": "long"
+  },
+  {
+   "ticker": "102780",
+   "name": "KODEX 삼성그룹",
+   "role": "long"
+  },
+  {
+   "ticker": "132030",
+   "name": "KODEX 골드선물(H)",
+   "role": "long"
+  },
+  {
    "ticker": "166400",
    "name": "TIGER 200커버드콜5%OTM",
    "role": "covered_call"
@@ -35,5 +70,5 @@
    "role": "inverse_2x"
   }
  ],
- "updated_at": "2026-06-08T00:25:59+09:00"
+ "updated_at": "2026-06-08T00:47:07+09:00"
 }

@@ -35,7 +35,9 @@ async def main() -> None:
     from app.trading.data import load_backtest_data_fdr
     from app.trading.settings import load_strategy
 
-    cfg = load_strategy("config/strategy.yaml")
+    # 데모 전용 전략 (종목 다양화 — 섹터 ETF 로테이션). 실운영 설정과 무관.
+    demo_cfg = Path(__file__).parent / "demo_strategy.yaml"
+    cfg = load_strategy(str(demo_cfg) if demo_cfg.exists() else "config/strategy.yaml")
     tickers = [a.ticker for a in cfg.universe]
     names = {a.ticker: a.name for a in cfg.universe}
 
