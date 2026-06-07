@@ -224,6 +224,9 @@ main {
   font-size: 11px;
   font-weight: 400;
   color: var(--ink-faint);
+  /* nowrap 금지 — 긴 sub(예: "매매 1,335건 · 일 승률 59.7%")가 그리드
+     min-content를 끌어올려 360px 이하에서 가로 오버플로를 만들었음 (평가 4R) */
+  white-space: normal;
 }
 
 .pos { color: var(--up); }
