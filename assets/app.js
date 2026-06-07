@@ -420,12 +420,14 @@ function renderBriefing(doc) {
   const outlook = String(doc.market_outlook || "")
     .split(/\n{2,}|\n/).filter(Boolean)
     .map((p) => `<p>${esc(p)}</p>`).join("");
-  const sectors = (doc.sector_views || []).map((s) => `
+  const viewRows = (list) => (list || []).map((s) => `
     <tr>
       <td>${esc(s.sector)}</td>
       <td><span class="act ${STANCE_CLS[s.stance] || "act-hold"}">${esc(s.stance)}</span></td>
       <td class="td-rationale">${esc(s.comment || "")}</td>
     </tr>`).join("");
+  const sectors = viewRows(doc.sector_views);
+  const macros = viewRows(doc.macro_views);
 
   host.innerHTML = `
     <p class="brief-oneliner">${esc(doc.one_liner || "")}</p>
@@ -438,10 +440,16 @@ function renderBriefing(doc) {
       <h3 class="brief-h">핵심 변수</h3>
       <div class="chips">${doc.key_drivers.map((d) => `<span class="chip">${esc(d)}</span>`).join("")}</div>` : ""}
     ${sectors ? `
-      <h3 class="brief-h">섹터 시각</h3>
+      <h3 class="brief-h">업종 시각</h3>
       <div class="table-wrap"><table class="picks">
-        <thead><tr><th>섹터</th><th>시각</th><th>근거</th></tr></thead>
+        <thead><tr><th>업종</th><th>시각</th><th>근거</th></tr></thead>
         <tbody>${sectors}</tbody>
+      </table></div>` : ""}
+    ${macros ? `
+      <h3 class="brief-h">매크로 시각</h3>
+      <div class="table-wrap"><table class="picks">
+        <thead><tr><th>변수</th><th>시각</th><th>근거</th></tr></thead>
+        <tbody>${macros}</tbody>
       </table></div>` : ""}
     ${(doc.risks || []).length ? `
       <h3 class="brief-h">리스크</h3>
