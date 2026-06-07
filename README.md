@@ -1,7 +1,7 @@
 # 가즈아 (GAZUA) 대시보드
 
-[가즈아(GAZUA)](https://github.com/Taehun/GAZUA) — 한국 주식 레짐 기반 자동매매 에이전트의
-**매매 히스토리·수익률 추적 대시보드**.
+**가즈아(GAZUA)** — 한국 주식 자동매매 에이전틱 AI 시스템의
+**매매 히스토리·수익률 추적 대시보드**
 
 **Live: https://taehun.github.io/gazua-dashboard/**
 
