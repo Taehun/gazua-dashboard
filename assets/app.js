@@ -267,10 +267,12 @@ function renderEquityChart(host, series, tooltip) {
         ? `<div style="color:${css("--gold")}">벤치 ${fmtPct(bench[i])}</div>` : "") +
       `<div class="tt-regime">${esc(regimeText)}</div>`;
     tooltip.hidden = false;
-    const tw = tooltip.offsetWidth;
-    const left = Math.min(clientX + 14, window.innerWidth - tw - 10);
+    const tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+    const left = Math.max(8, Math.min(clientX + 14, window.innerWidth - tw - 10));
+    let top = clientY + 16;
+    if (top + th > window.innerHeight - 8) top = clientY - th - 12;  // 아래 공간 없으면 위로
     tooltip.style.left = left + "px";
-    tooltip.style.top = (clientY + 16) + "px";
+    tooltip.style.top = Math.max(8, top) + "px";
     if (live) live.textContent =
       `${p.date}, 수익률 ${fmtPct(port[i])}, 평가액 ${fmtKRW(p.value)}원, 레짐 ${regimeText}`;
     return i;

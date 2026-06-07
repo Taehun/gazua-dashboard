@@ -236,7 +236,12 @@ main {
   border-radius: var(--r);
   padding: var(--pad);
   backdrop-filter: blur(2px);
+  /* grid 아이템 min-content 전파 차단 — 테이블 min-width(680px)가
+     모바일에서 페이지 전체를 옆으로 밀던 회귀의 원인 */
+  min-width: 0;
 }
+
+main > *, .duo > * { min-width: 0; }
 
 .panel-head {
   display: flex;
@@ -455,6 +460,7 @@ select {
   margin: 0 calc(var(--pad) * -1);
   padding: 0 var(--pad);
   position: relative;
+  max-width: calc(100% + var(--pad) * 2);  /* 음수 마진 블리드 유지 + 전파 차단 */
 }
 
 /* 모바일 가로 스크롤 affordance — 끝까지 스크롤하면 JS가 .at-end 토글 */
