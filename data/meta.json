@@ -20,8 +20,48 @@
    "role": "long_2x"
   },
   {
-   "ticker": "091160",
-   "name": "KODEX 반도체",
+   "ticker": "005930",
+   "name": "삼성전자",
+   "role": "long"
+  },
+  {
+   "ticker": "000660",
+   "name": "SK하이닉스",
+   "role": "long"
+  },
+  {
+   "ticker": "042700",
+   "name": "한미반도체",
+   "role": "long"
+  },
+  {
+   "ticker": "058470",
+   "name": "리노공업",
+   "role": "long"
+  },
+  {
+   "ticker": "357780",
+   "name": "솔브레인",
+   "role": "long"
+  },
+  {
+   "ticker": "240810",
+   "name": "원익IPS",
+   "role": "long"
+  },
+  {
+   "ticker": "105560",
+   "name": "KB금융",
+   "role": "long"
+  },
+  {
+   "ticker": "055550",
+   "name": "신한지주",
+   "role": "long"
+  },
+  {
+   "ticker": "086790",
+   "name": "하나금융지주",
    "role": "long"
   },
   {
@@ -30,18 +70,8 @@
    "role": "long"
   },
   {
-   "ticker": "091170",
-   "name": "KODEX 은행",
-   "role": "long"
-  },
-  {
    "ticker": "091180",
    "name": "KODEX 자동차",
-   "role": "long"
-  },
-  {
-   "ticker": "229200",
-   "name": "KODEX 코스닥150",
    "role": "long"
   },
   {
@@ -70,5 +100,5 @@
    "role": "inverse_2x"
   }
  ],
- "updated_at": "2026-06-08T00:47:07+09:00"
+ "updated_at": "2026-06-08T01:21:42+09:00"
 }

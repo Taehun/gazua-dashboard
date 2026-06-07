@@ -1,31 +1,44 @@
-# 데모 데이터 생성 전용 전략 — 종목 다양성 확보판 (대시보드 샘플용)
+# 데모 데이터 생성 전용 전략 v3 — 반도체·금융 개별 종목 포함 + 벤치 초과 구성
 #
-# ⚠️ 실운영 strategy.yaml이 아니다. 같은 엔진(run_backtest)을 더 넓은
-#    섹터 ETF 유니버스로 돌려, 대시보드 데모에 다양한 종목이 보이게 한다.
-#    레짐 임계값·리스크 한도는 실운영 설정과 동일.
+# ⚠️ 실운영 strategy.yaml이 아니다. 같은 엔진(run_backtest)을 반도체·금융
+#    개별주를 포함한 넓은 유니버스로 돌려, 대시보드 데모에 다양한 종목과
+#    벤치 초과(α +20%p 이상, 사용자 요구) 수익 곡선이 보이게 한다.
+#    데모 전용 완화: band 0.02, confirm_days_up 2, target_vol 0.30,
+#    risk_scale_floor 1.0 — 하드 리스크 한도(포지션·인버스 캡 등)는 실운영과 동일.
 
 mode: paper
 
 universe:
+  # ── 지수·레버리지 ──
   - { ticker: "069500", name: KODEX 200,            role: long }
   - { ticker: "122630", name: KODEX 레버리지,        role: long_2x,
-      max_weight: 0.60, reentry_cooldown_days: 5,
+      max_weight: 0.70, reentry_cooldown_days: 5,
       substitute_on_expiry: "069500" }
-  - { ticker: "091160", name: KODEX 반도체,          role: long }
+  # ── 반도체 개별 종목 ──
+  - { ticker: "005930", name: 삼성전자,              role: long }
+  - { ticker: "000660", name: SK하이닉스,            role: long }
+  - { ticker: "042700", name: 한미반도체,            role: long }
+  - { ticker: "058470", name: 리노공업,              role: long }
+  - { ticker: "357780", name: 솔브레인,              role: long }
+  - { ticker: "240810", name: 원익IPS,               role: long }
+  # ── 금융 개별 종목 ──
+  - { ticker: "105560", name: KB금융,                role: long }
+  - { ticker: "055550", name: 신한지주,              role: long }
+  - { ticker: "086790", name: 하나금융지주,          role: long }
+  # ── 섹터·자산 다변화 ──
   - { ticker: "305720", name: KODEX 2차전지산업,     role: long }
-  - { ticker: "091170", name: KODEX 은행,            role: long }
   - { ticker: "091180", name: KODEX 자동차,          role: long }
-  - { ticker: "229200", name: KODEX 코스닥150,       role: long }
   - { ticker: "102780", name: KODEX 삼성그룹,        role: long }
   - { ticker: "132030", name: KODEX 골드선물(H),     role: long }
   - { ticker: "166400", name: TIGER 200커버드콜5%OTM, role: covered_call }
+  # ── 방어 ──
   - { ticker: "114800", name: KODEX 인버스,          role: inverse }
   - { ticker: "252670", name: KODEX 200선물인버스2X,  role: inverse_2x,
       max_weight: 0.25, max_holding_days: 15,
       reentry_cooldown_days: 5, substitute_on_expiry: "114800" }
 
 rebalance:
-  band: 0.04                 # 데모: 종목별 비중이 작아 밴드 축소 (실운영 0.08)
+  band: 0.02                 # 데모: 0.03~0.04 소비중 종목도 거래되게 (실운영 0.08)
   max_daily_turnover: 0.40
   max_daily_turnover_defense: 0.60
 
@@ -37,30 +50,35 @@ signals:
   vol_window: 20
   vol_percentile_window: 504
   vol_measure: downside
-  risk_scale_floor: 0.9
+  risk_scale_floor: 1.0   # 데모: vol 댐핑 해제
   global_factors:
     enabled: true
-  target_vol: 0.18
+  target_vol: 0.30        # 데모: 감속 최소화
 
 regimes:
   confirm_days_down: 1
-  confirm_days_up: 3
+  confirm_days_up: 2
   recovery_fast_entry: { enabled: true, min_drawdown: 0.15, min_rebound: 0.13, confirm_days: 1 }
   panic:   { uncertainty_enter: 0.97, uncertainty_exit: 0.90, exit_confirm_days: 2,
              weights: { CASH: 1.0 } }
   crash:   { trend_enter: -0.60, trend_exit: -0.45,
-             weights: { "114800": 0.35, "252670": 0.20, "132030": 0.10, CASH: 0.35 } }
+             weights: { "114800": 0.30, "252670": 0.18, "132030": 0.10, CASH: 0.42 } }
   bear:    { trend_enter: -0.30, trend_exit: -0.15,
-             weights: { "114800": 0.35, "132030": 0.15, "091170": 0.05, CASH: 0.45 } }
+             weights: { "114800": 0.30, "132030": 0.15, "105560": 0.05, CASH: 0.50 } }
+  # 강세: 반도체 집중 (AI 사이클 주도주) + 레버리지 + 금융
   bull:    { trend_enter: 0.30, trend_exit: 0.15,
-             weights: { "069500": 0.22, "122630": 0.15, "091160": 0.13,
-                        "091180": 0.10, "091170": 0.08, "229200": 0.10,
-                        "102780": 0.12, CASH: 0.10 } }
+             weights: { "122630": 0.28, "000660": 0.14, "005930": 0.11,
+                        "042700": 0.08, "357780": 0.04, "240810": 0.04,
+                        "069500": 0.05, "105560": 0.05, "055550": 0.04,
+                        "086790": 0.03, "091180": 0.03, "305720": 0.03,
+                        "102780": 0.03, CASH: 0.05 } }
   strong_bull: { trend_enter: 0.65, trend_exit: 0.50,
-                 weights: { "122630": 0.40, "091160": 0.16, "305720": 0.10,
-                            "229200": 0.14, "102780": 0.10, CASH: 0.10 } }
-  neutral: { weights: { "069500": 0.12, "166400": 0.28, "132030": 0.10,
-                        "091170": 0.08, "114800": 0.07, CASH: 0.35 } }
+                 weights: { "122630": 0.50, "000660": 0.16, "042700": 0.10,
+                            "005930": 0.08, "058470": 0.05, "305720": 0.04,
+                            "102780": 0.03, CASH: 0.04 } }
+  neutral: { weights: { "069500": 0.12, "166400": 0.20, "005930": 0.12,
+                        "000660": 0.10, "105560": 0.08, "132030": 0.06,
+                        "114800": 0.04, CASH: 0.28 } }
 
 risk:
   max_position_weight: 0.90
