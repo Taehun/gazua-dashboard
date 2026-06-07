@@ -412,6 +412,74 @@ function renderMonthly(host, months) {
   host.appendChild(svg);
 }
 
+/* ── 모닝 브리프 ─────────────────────────────────────────── */
+const ACTION_CLS = { "비중확대": "act-up", "비중축소": "act-down",
+                     "유지": "act-hold", "관망": "act-hold" };
+
+function renderBriefing(doc) {
+  const host = $("#briefing-body");
+  const outlook = String(doc.market_outlook || "")
+    .split(/\n{2,}|\n/).filter(Boolean)
+    .map((p) => `<p>${esc(p)}</p>`).join("");
+  const picks = (doc.picks || []).map((p) => `
+    <tr>
+      <td>${esc(p.name)}<span class="ticker">${esc(p.ticker)}</span></td>
+      <td><span class="act ${ACTION_CLS[p.action] || "act-hold"}">${esc(p.action)}</span>
+          <span class="conv-bar" title="확신도 ${Math.round((p.conviction || 0) * 100)}%"
+            ><i style="width:${Math.round((p.conviction || 0) * 100)}%"></i></span></td>
+      <td class="td-rationale">${esc(p.rationale || "")}</td>
+    </tr>`).join("");
+
+  host.innerHTML = `
+    <p class="brief-oneliner">${esc(doc.one_liner || "")}</p>
+    <p class="brief-meta">${esc((doc.generated_at || "").slice(0, 16).replace("T", " "))} 생성</p>
+    <div class="brief-outlook">
+      <h3 class="brief-h">금일 시황 예상</h3>${outlook}
+    </div>
+    ${(doc.key_drivers || []).length ? `
+      <h3 class="brief-h">핵심 변수</h3>
+      <div class="chips">${doc.key_drivers.map((d) => `<span class="chip">${esc(d)}</span>`).join("")}</div>` : ""}
+    ${picks ? `
+      <h3 class="brief-h">오늘의 추천 종목</h3>
+      <div class="table-wrap"><table class="picks">
+        <thead><tr><th>종목</th><th>권고 · 확신도</th><th>근거</th></tr></thead>
+        <tbody>${picks}</tbody>
+      </table></div>` : ""}
+    ${(doc.watch_themes || []).length ? `
+      <h3 class="brief-h">주목 테마</h3>
+      <div class="chips">${doc.watch_themes.map((t) => `<span class="chip">${esc(t)}</span>`).join("")}</div>` : ""}
+    ${(doc.risks || []).length ? `
+      <h3 class="brief-h">리스크</h3>
+      <ul class="brief-risks">${doc.risks.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>` : ""}
+    <p class="brief-disclaimer">${esc(doc.disclaimer ||
+      "본 브리핑은 AI가 자동 생성한 참고 자료이며 투자 권유가 아닙니다.")}</p>`;
+  $("#briefing-demo").hidden = !doc.demo;
+}
+
+async function initBriefings() {
+  let idx;
+  try {
+    idx = await fetchJSON("data/briefings/index.json");
+  } catch {
+    return;   // 브리핑 데이터 없음 — 패널 비표시
+  }
+  const dates = (idx.dates || []).slice().sort().reverse();
+  if (!dates.length) return;
+
+  const panel = $("#briefing-panel");
+  const sel = $("#briefing-select");
+  sel.innerHTML = dates.map((d) => `<option value="${esc(d)}">${esc(d)}</option>`).join("");
+
+  const load = async (d) => {
+    try {
+      renderBriefing(await fetchJSON(`data/briefings/${d}.json`));
+      panel.hidden = false;
+    } catch { /* 단일 브리핑 로드 실패 — 무시 */ }
+  };
+  sel.addEventListener("change", () => load(sel.value));
+  await load(dates[0]);
+}
+
 /* ── KPI ────────────────────────────────────────────────── */
 function renderKPIs(host, m, meta, tradeCount) {
   const sign = (v) => (v >= 0 ? "pos" : "neg");
@@ -523,6 +591,8 @@ function renderTrades(state) {
 
   const metrics = computeMetrics(series, meta.initial_capital);
   renderKPIs($("#kpis"), metrics, meta, trades.length);
+
+  initBriefings();   // 모닝 브리프 (데이터 있을 때만 표시 — 비차단)
 
   $("#bench-name").textContent = meta.benchmark || "벤치마크";
   $("#legend-bench").textContent = meta.benchmark || "벤치마크";

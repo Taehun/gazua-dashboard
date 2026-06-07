@@ -438,6 +438,134 @@ main > *, .duo > * { min-width: 0; }
 .tooltip .tt-date { color: var(--ink-faint); font-size: 11px; }
 .tooltip .tt-regime { font-size: 11px; }
 
+/* ── 모닝 브리프 ────────────────────────────────────────── */
+.brief-badge {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--down);
+  border: 1px solid rgba(77, 141, 255, .4);
+  border-radius: 999px;
+  padding: 2px 8px;
+  vertical-align: 3px;
+  margin-left: 6px;
+}
+
+.brief-oneliner {
+  margin: 4px 0 14px;
+  font-size: clamp(17px, 2vw, 21px);
+  font-weight: 700;
+  letter-spacing: -.01em;
+  line-height: 1.4;
+}
+
+.brief-oneliner::before { content: "“"; color: var(--gold); }
+.brief-oneliner::after  { content: "”"; color: var(--gold); }
+
+.brief-meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-bottom: 12px;
+}
+
+.brief-outlook p {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--ink);
+  max-width: 76ch;
+}
+
+.brief-h {
+  margin: 18px 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: var(--ink-dim);
+  font-family: var(--mono);
+  text-transform: uppercase;
+}
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.chip {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-raise);
+  color: var(--ink-dim);
+}
+
+table.picks {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.picks th {
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .06em;
+  color: var(--ink-faint);
+  border-bottom: 1px solid var(--line-strong);
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.picks td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.picks .td-rationale { color: var(--ink-dim); font-size: 12.5px; line-height: 1.6; }
+
+.act {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2.5px 9px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.act-up   { color: var(--up);       background: var(--up-soft); }
+.act-down { color: var(--down);     background: var(--down-soft); }
+.act-hold { color: var(--ink-dim);  background: var(--bg-raise-2); }
+
+.conv-bar {
+  display: inline-block;
+  width: 56px; height: 5px;
+  border-radius: 3px;
+  background: var(--bg-raise-2);
+  overflow: hidden;
+  vertical-align: 1px;
+  margin-left: 8px;
+}
+
+.conv-bar i {
+  display: block; height: 100%;
+  background: var(--gold);
+  border-radius: 3px;
+}
+
+.brief-risks { margin: 0; padding-left: 18px; }
+.brief-risks li { font-size: 13px; color: var(--ink-dim); margin-bottom: 4px; line-height: 1.6; }
+
+.brief-disclaimer {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  line-height: 1.6;
+}
+
 /* ── 매매 테이블 ────────────────────────────────────────── */
 .trade-controls {
   display: flex;
