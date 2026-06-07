@@ -412,22 +412,19 @@ function renderMonthly(host, months) {
   host.appendChild(svg);
 }
 
-/* ── 모닝 브리프 ─────────────────────────────────────────── */
-const ACTION_CLS = { "비중확대": "act-up", "비중축소": "act-down",
-                     "유지": "act-hold", "관망": "act-hold" };
+/* ── 모닝 브리프 — 섹터·매크로·지수 레벨만 (종목 권고 없음, 준법) ── */
+const STANCE_CLS = { "긍정": "act-up", "부정": "act-down", "중립": "act-hold" };
 
 function renderBriefing(doc) {
   const host = $("#briefing-body");
   const outlook = String(doc.market_outlook || "")
     .split(/\n{2,}|\n/).filter(Boolean)
     .map((p) => `<p>${esc(p)}</p>`).join("");
-  const picks = (doc.picks || []).map((p) => `
+  const sectors = (doc.sector_views || []).map((s) => `
     <tr>
-      <td>${esc(p.name)}<span class="ticker">${esc(p.ticker)}</span></td>
-      <td><span class="act ${ACTION_CLS[p.action] || "act-hold"}">${esc(p.action)}</span>
-          <span class="conv-bar" title="확신도 ${Math.round((p.conviction || 0) * 100)}%"
-            ><i style="width:${Math.round((p.conviction || 0) * 100)}%"></i></span></td>
-      <td class="td-rationale">${esc(p.rationale || "")}</td>
+      <td>${esc(s.sector)}</td>
+      <td><span class="act ${STANCE_CLS[s.stance] || "act-hold"}">${esc(s.stance)}</span></td>
+      <td class="td-rationale">${esc(s.comment || "")}</td>
     </tr>`).join("");
 
   host.innerHTML = `
@@ -436,18 +433,18 @@ function renderBriefing(doc) {
     <div class="brief-outlook">
       <h3 class="brief-h">금일 시황 예상</h3>${outlook}
     </div>
+    ${doc.index_view ? `
+      <h3 class="brief-h">지수 전망</h3>
+      <div class="brief-outlook"><p>${esc(doc.index_view)}</p></div>` : ""}
     ${(doc.key_drivers || []).length ? `
       <h3 class="brief-h">핵심 변수</h3>
       <div class="chips">${doc.key_drivers.map((d) => `<span class="chip">${esc(d)}</span>`).join("")}</div>` : ""}
-    ${picks ? `
-      <h3 class="brief-h">오늘의 추천 종목</h3>
+    ${sectors ? `
+      <h3 class="brief-h">섹터 시각</h3>
       <div class="table-wrap"><table class="picks">
-        <thead><tr><th>종목</th><th>권고 · 확신도</th><th>근거</th></tr></thead>
-        <tbody>${picks}</tbody>
+        <thead><tr><th>섹터</th><th>시각</th><th>근거</th></tr></thead>
+        <tbody>${sectors}</tbody>
       </table></div>` : ""}
-    ${(doc.watch_themes || []).length ? `
-      <h3 class="brief-h">주목 테마</h3>
-      <div class="chips">${doc.watch_themes.map((t) => `<span class="chip">${esc(t)}</span>`).join("")}</div>` : ""}
     ${(doc.risks || []).length ? `
       <h3 class="brief-h">리스크</h3>
       <ul class="brief-risks">${doc.risks.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>` : ""}
