@@ -5,9 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>가즈아 (GAZUA) — 수익률 대시보드</title>
 <meta name="description" content="한국 주식 레짐 기반 자동매매 에이전트 가즈아(GAZUA)의 매매 히스토리·수익률 추적 대시보드">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preload" href="assets/fonts/plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/plex-mono-600.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230b0f17'/><path d='M8 22 L14 13 L19 17 L25 8' stroke='%23ff4d57' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -54,6 +53,8 @@
       <span class="key-regimes" id="legend-regimes"></span>
     </div>
     <div class="chart-wrap" id="equity-chart" role="img" aria-label="포트폴리오와 벤치마크 누적 수익률 비교 차트"></div>
+    <p class="chart-hint">차트 위 마우스 이동 또는 키보드 포커스 후 ←/→ 키로 일별 값 탐색</p>
+    <div class="sr-only" id="chart-live" aria-live="polite"></div>
   </section>
 
   <!-- ── 드로다운 + 월별 ───────────────────────────────── -->

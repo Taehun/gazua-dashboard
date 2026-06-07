@@ -76,12 +76,14 @@ function computeMetrics(series, initialCapital) {
     return { date: p.date, dd: d };
   });
 
-  let benchReturn = null;
-  if (first.benchmark && last.benchmark)
+  let benchReturn = null, alpha = null;
+  if (first.benchmark && last.benchmark) {
     benchReturn = last.benchmark / first.benchmark - 1;
+    alpha = totalReturn - benchReturn;   // 벤치 대비 초과수익 (%p)
+  }
 
-  return { totalReturn, cagr, sharpe, winRate, mdd, dd, benchReturn,
-           lastValue: last.value, days: series.length };
+  return { totalReturn, cagr, sharpe, winRate, mdd, dd, benchReturn, alpha,
+           years, lastValue: last.value, days: series.length };
 }
 
 function monthlyReturns(series) {
@@ -160,8 +162,8 @@ function renderEquityChart(host, series, tooltip) {
      </linearGradient>`;
   svg.appendChild(defs);
 
-  // 레짐 밴드 (연속 구간 병합 — 2일 미만 구간은 줄무늬 노이즈라 생략)
-  const minSeg = series.length > 60 ? 2 : 1;
+  // 레짐 밴드 (연속 구간 병합 — 짧은 구간은 줄무늬 노이즈라 생략, 기간에 비례)
+  const minSeg = Math.max(1, Math.round(series.length / 60));
   let segStart = 0;
   for (let i = 1; i <= series.length; i++) {
     if (i === series.length || series[i].regime !== series[segStart].regime) {
@@ -229,6 +231,8 @@ function renderEquityChart(host, series, tooltip) {
 
   const overlay = svgEl("rect", {
     x: M.l, y: M.t, width: iw, height: ih, fill: "transparent",
+    tabindex: "0", role: "application",
+    "aria-label": "일별 값 탐색 — 좌우 화살표 키로 이동",
   });
   svg.appendChild(overlay);
   host.appendChild(svg);
@@ -241,11 +245,9 @@ function renderEquityChart(host, series, tooltip) {
     } catch { /* 비표시 상태 등 */ }
   });
 
-  const onMove = (ev) => {
-    const rect = svg.getBoundingClientRect();
-    const px = ((ev.clientX - rect.left) / rect.width) * W;
-    const i = Math.max(0, Math.min(series.length - 1,
-      Math.round(((px - M.l) / iw) * (series.length - 1))));
+  const live = document.getElementById("chart-live");
+
+  const showIndex = (i, clientX, clientY) => {
     const p = series[i];
     xline.setAttribute("x1", x(i)); xline.setAttribute("x2", x(i));
     xline.setAttribute("visibility", "visible");
@@ -256,28 +258,64 @@ function renderEquityChart(host, series, tooltip) {
       dotB.setAttribute("visibility", "visible");
     } else dotB.setAttribute("visibility", "hidden");
 
+    const regimeText = REGIME_LABEL[p.regime] || p.regime || "";
     tooltip.innerHTML =
       `<div class="tt-date">${esc(p.date)}</div>` +
       `<div><span class="${port[i] >= 0 ? "pos" : "neg"}">${fmtPct(port[i])}</span>` +
       ` · ₩${fmtKRW(p.value)}</div>` +
       (bench && bench[i] !== null
         ? `<div style="color:${css("--gold")}">벤치 ${fmtPct(bench[i])}</div>` : "") +
-      `<div class="tt-regime">${esc(REGIME_LABEL[p.regime] || p.regime || "")}</div>`;
+      `<div class="tt-regime">${esc(regimeText)}</div>`;
     tooltip.hidden = false;
     const tw = tooltip.offsetWidth;
-    const left = Math.min(ev.clientX + 14, window.innerWidth - tw - 10);
+    const left = Math.min(clientX + 14, window.innerWidth - tw - 10);
     tooltip.style.left = left + "px";
-    tooltip.style.top = (ev.clientY + 16) + "px";
+    tooltip.style.top = (clientY + 16) + "px";
+    if (live) live.textContent =
+      `${p.date}, 수익률 ${fmtPct(port[i])}, 평가액 ${fmtKRW(p.value)}원, 레짐 ${regimeText}`;
+    return i;
   };
-  const onLeave = () => {
+
+  const idxFromEvent = (ev) => {
+    const rect = svg.getBoundingClientRect();
+    const px = ((ev.clientX - rect.left) / rect.width) * W;
+    return Math.max(0, Math.min(series.length - 1,
+      Math.round(((px - M.l) / iw) * (series.length - 1))));
+  };
+  const hide = () => {
     tooltip.hidden = true;
     for (const el of [xline, dotP, dotB]) el.setAttribute("visibility", "hidden");
   };
-  overlay.addEventListener("mousemove", onMove);
-  overlay.addEventListener("mouseleave", onLeave);
-  overlay.addEventListener("touchstart", (e) => onMove(e.touches[0]), { passive: true });
-  overlay.addEventListener("touchmove", (e) => onMove(e.touches[0]), { passive: true });
-  overlay.addEventListener("touchend", onLeave);
+
+  let kbIndex = series.length - 1;   // 키보드 탐색 위치 (기본: 최신일)
+  const showKb = () => {
+    const rect = svg.getBoundingClientRect();
+    const cx = rect.left + (x(kbIndex) / W) * rect.width;
+    const cy = rect.top + (y(port[kbIndex]) / H) * rect.height;
+    showIndex(kbIndex, cx, cy);
+  };
+
+  overlay.addEventListener("mousemove", (ev) => showIndex(idxFromEvent(ev), ev.clientX, ev.clientY));
+  overlay.addEventListener("mouseleave", hide);
+  overlay.addEventListener("touchstart", (e) => {
+    const t = e.touches[0]; showIndex(idxFromEvent(t), t.clientX, t.clientY);
+  }, { passive: true });
+  overlay.addEventListener("touchmove", (e) => {
+    const t = e.touches[0]; showIndex(idxFromEvent(t), t.clientX, t.clientY);
+  }, { passive: true });
+  overlay.addEventListener("touchend", hide);
+  overlay.addEventListener("focus", showKb);
+  overlay.addEventListener("blur", hide);
+  overlay.addEventListener("keydown", (ev) => {
+    const step = { ArrowLeft: -1, ArrowRight: 1, PageUp: -21, PageDown: 21 }[ev.key];
+    if (step) kbIndex = Math.max(0, Math.min(series.length - 1, kbIndex + step));
+    else if (ev.key === "Home") kbIndex = 0;
+    else if (ev.key === "End") kbIndex = series.length - 1;
+    else if (ev.key === "Escape") { hide(); return; }
+    else return;
+    ev.preventDefault();
+    showKb();
+  });
 }
 
 /* ── 드로다운 차트 ───────────────────────────────────────── */
@@ -375,18 +413,22 @@ function renderMonthly(host, months) {
 /* ── KPI ────────────────────────────────────────────────── */
 function renderKPIs(host, m, meta, tradeCount) {
   const sign = (v) => (v >= 0 ? "pos" : "neg");
+  const benchName = meta.benchmark || "벤치마크";
   const items = [
     { label: "총 자산", value: "₩" + fmtKRW(m.lastValue), cls: "",
       sub: `원금 ₩${fmtKRW(meta.initial_capital)}` },
     { label: "누적 수익률", value: fmtPct(m.totalReturn), cls: sign(m.totalReturn),
-      sub: m.benchReturn !== null ? `벤치 ${fmtPct(m.benchReturn)}` : "" },
+      sub: `매매 ${fmtNum(tradeCount)}건 · 일 승률 ${(m.winRate * 100).toFixed(1)}%` },
+    // 벤치 대비 초과수익 — 미달이면 숨기지 않고 청색(하락색)으로 정직하게 표시
+    { label: `vs ${benchName} (α)`,
+      value: m.alpha !== null ? fmtPct(m.alpha) + "p" : "—",
+      cls: m.alpha !== null ? sign(m.alpha) : "",
+      sub: m.benchReturn !== null ? `벤치 ${fmtPct(m.benchReturn)}` : "벤치 데이터 없음" },
     { label: "CAGR", value: fmtPct(m.cagr), cls: sign(m.cagr),
-      sub: `${m.days}거래일` },
+      sub: `연환산 · 표본 ${m.years.toFixed(1)}년` },
     { label: "최대 낙폭", value: fmtPct(m.mdd), cls: "neg", sub: "고점 대비" },
     { label: "샤프 지수", value: m.sharpe.toFixed(2), cls: "",
-      sub: "연환산" },
-    { label: "일 승률", value: (m.winRate * 100).toFixed(1) + "%", cls: "",
-      sub: `매매 ${fmtNum(tradeCount)}건` },
+      sub: `연환산 · ${m.days}거래일` },
   ];
   host.innerHTML = items.map((it) => `
     <dl class="kpi">
@@ -530,4 +572,23 @@ function renderTrades(state) {
     state.shown += PAGE; renderTrades(state);
   });
   renderTrades(state);
+
+  // 모바일 가로 스크롤 affordance — 우측 페이드 (끝 도달·스크롤 불필요 시 숨김)
+  const wrap = $(".table-wrap");
+  if (wrap) {
+    const fade = document.createElement("div");
+    fade.className = "table-fade";
+    fade.setAttribute("aria-hidden", "true");
+    wrap.prepend(fade);
+    const updateFade = () => {
+      const scrollable = wrap.scrollWidth > wrap.clientWidth + 1;
+      const atEnd = wrap.scrollLeft + wrap.clientWidth >= wrap.scrollWidth - 4;
+      wrap.classList.toggle("at-end", !scrollable || atEnd);
+      fade.style.setProperty("--fade-h", wrap.clientHeight + "px");
+    };
+    wrap.addEventListener("scroll", updateFade, { passive: true });
+    window.addEventListener("resize", updateFade);
+    new MutationObserver(updateFade).observe($("#trades-body"), { childList: true });
+    updateFade();
+  }
 })();

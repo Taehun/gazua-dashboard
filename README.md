@@ -19,8 +19,9 @@ data/
 tools/generate_demo_data.py  # 데모 데이터 재생성 (실데이터 백테스트 출력)
 ```
 
-**의존성 0** — 빌드 도구·외부 라이브러리 없음 (웹폰트 제외). GitHub Pages가 main 브랜치
-루트를 그대로 서빙한다.
+**의존성 0** — 빌드 도구·외부 라이브러리·외부 요청 없음. 숫자용 모노 폰트(IBM Plex
+Mono latin, 30KB)는 `assets/fonts/`에 self-host, 한글 본문은 시스템 폰트.
+GitHub Pages가 main 브랜치 루트를 그대로 서빙한다.
 
 ## 데이터 갱신
 

@@ -1,8 +1,24 @@
 /* ═══════════════════════════════════════════════════════════
    가즈아 (GAZUA) 대시보드 — "야간 트레이딩 데스크"
    잉크 블랙 + 헤어라인 패널 + 한국 증시 컨벤션 (상승=적, 하락=청)
-   의존성 0 — 폰트 외 외부 리소스 없음
+   의존성 0 — 외부 요청 없음 (모노 폰트는 self-host, 한글은 시스템 폰트)
    ═══════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal; font-weight: 400; font-display: swap;
+  src: url("fonts/plex-mono-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal; font-weight: 500; font-display: swap;
+  src: url("fonts/plex-mono-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal; font-weight: 600; font-display: swap;
+  src: url("fonts/plex-mono-600.woff2") format("woff2");
+}
 
 :root {
   --bg: #0b0f17;            /* 깊은 잉크 네이비-블랙 */
@@ -11,8 +27,8 @@
   --line: #1f2937;          /* 헤어라인 */
   --line-strong: #2c3a4f;
   --ink: #e8edf5;           /* 본문 */
-  --ink-dim: #8b97a8;       /* 보조 */
-  --ink-faint: #5b6678;     /* 미세 */
+  --ink-dim: #9ba8ba;       /* 보조 (패널 위 6.0:1) */
+  --ink-faint: #8290a4;     /* 미세 (패널 위 4.6:1 — WCAG AA) */
 
   /* 한국 증시 컨벤션 — 상승=적, 하락=청 */
   --up: #ff4d57;
@@ -21,16 +37,16 @@
   --down-soft: rgba(77, 141, 255, .12);
   --gold: #e7b75f;          /* 벤치마크·하이라이트 */
 
-  /* 레짐 팔레트 (차트 배경 띠) */
-  --rg-strong-bull: rgba(255, 77, 87, .16);
-  --rg-bull: rgba(255, 77, 87, .07);
-  --rg-neutral: rgba(231, 183, 95, .06);
-  --rg-bear: rgba(77, 141, 255, .08);
-  --rg-crash: rgba(77, 141, 255, .17);
-  --rg-panic: rgba(167, 112, 255, .16);
-  --rg-halt: rgba(148, 163, 184, .14);
+  /* 레짐 팔레트 (차트 배경 띠) — 라인 가독성 우선, 은은하게 */
+  --rg-strong-bull: rgba(255, 77, 87, .13);
+  --rg-bull: rgba(255, 77, 87, .055);
+  --rg-neutral: rgba(231, 183, 95, .05);
+  --rg-bear: rgba(77, 141, 255, .065);
+  --rg-crash: rgba(77, 141, 255, .14);
+  --rg-panic: rgba(167, 112, 255, .13);
+  --rg-halt: rgba(148, 163, 184, .11);
 
-  --sans: "IBM Plex Sans KR", "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --sans: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --mono: "IBM Plex Mono", "SF Mono", "Menlo", monospace;
 
   --r: 10px;
@@ -327,6 +343,27 @@ main {
 /* ── 차트 ───────────────────────────────────────────────── */
 .chart-wrap { position: relative; }
 
+.chart-wrap svg rect[tabindex]:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+}
+
+.chart-hint {
+  margin: 6px 0 0;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--ink-faint);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .chart-wrap svg { display: block; width: 100%; height: auto; }
 
 .chart-sm svg { max-height: 220px; }
@@ -413,7 +450,35 @@ select {
   cursor: pointer;
 }
 
-.table-wrap { overflow-x: auto; margin: 0 calc(var(--pad) * -1); padding: 0 var(--pad); }
+.table-wrap {
+  overflow-x: auto;
+  margin: 0 calc(var(--pad) * -1);
+  padding: 0 var(--pad);
+  position: relative;
+}
+
+/* 모바일 가로 스크롤 affordance — 끝까지 스크롤하면 JS가 .at-end 토글 */
+.table-fade {
+  position: sticky;
+  left: calc(100% - 36px);
+  width: 36px;
+  height: 0;
+  pointer-events: none;
+  z-index: 2;
+  display: block;
+}
+
+.table-fade::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 36px;
+  height: var(--fade-h, 0px);
+  background: linear-gradient(90deg, transparent, rgba(11, 15, 23, .9));
+  transition: opacity .2s;
+}
+
+.table-wrap.at-end .table-fade::after { opacity: 0; }
 
 table.trades {
   width: 100%;
