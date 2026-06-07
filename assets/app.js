@@ -415,7 +415,21 @@ function renderMonthly(host, months) {
 /* ── 모닝 브리프 — 섹터·매크로·지수 레벨만 (종목 권고 없음, 준법) ── */
 const STANCE_CLS = { "긍정": "act-up", "부정": "act-down", "중립": "act-hold" };
 
-function renderBriefing(doc) {
+/* "2026-06-09" → "6월 9일" (제목 노출용) */
+function briefDateKo(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso));
+  return m ? `${+m[2]}월 ${+m[3]}일` : String(iso || "");
+}
+
+function renderBriefing(doc, dateStr) {
+  // 제목 — "<날짜> 시황 예상"
+  const d = dateStr || doc.date || "";
+  $("#briefing-title-date").textContent =
+    (d ? `${briefDateKo(d)} ` : "") + "시황 예상";
+
+  // 헤드라인(one_liner) — 항상 노출. 상세 본문은 '상세보기'로 펼침
+  $("#briefing-headline").textContent = doc.one_liner || "";
+
   const host = $("#briefing-body");
   const outlook = String(doc.market_outlook || "")
     .split(/\n{2,}|\n/).filter(Boolean)
@@ -430,7 +444,6 @@ function renderBriefing(doc) {
   const macros = viewRows(doc.macro_views);
 
   host.innerHTML = `
-    <p class="brief-oneliner">${esc(doc.one_liner || "")}</p>
     <p class="brief-meta">${esc((doc.generated_at || "").slice(0, 16).replace("T", " "))} 생성</p>
     <div class="brief-outlook">${outlook}</div>
     ${doc.index_view ? `
@@ -475,11 +488,22 @@ async function initBriefings() {
 
   const load = async (d) => {
     try {
-      renderBriefing(await fetchJSON(`data/briefings/${d}.json`));
+      renderBriefing(await fetchJSON(`data/briefings/${d}.json`), d);
       panel.hidden = false;
     } catch { /* 단일 브리핑 로드 실패 — 무시 */ }
   };
   sel.addEventListener("change", () => load(sel.value));
+
+  // '상세보기' 토글 — 헤드라인 아래 상세 본문 펼침/접기
+  const toggle = $("#briefing-toggle");
+  const body = $("#briefing-body");
+  toggle.addEventListener("click", () => {
+    const open = toggle.getAttribute("aria-expanded") === "true";
+    toggle.setAttribute("aria-expanded", String(!open));
+    body.hidden = open;
+    toggle.textContent = open ? "상세보기" : "접기";
+  });
+
   await load(dates[0]);
 }
 

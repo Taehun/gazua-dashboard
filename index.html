@@ -14,8 +14,8 @@
 
 <header class="masthead reveal">
   <div class="brand">
-    <h1 class="brand-mark">가즈아<span class="brand-tick">↗</span></h1>
-    <p class="brand-sub">GAZUA — 레짐 기반 자동매매 에이전트</p>
+    <h1 class="brand-mark">가즈아<span class="brand-tick">↗</span><span class="beta-badge">Beta</span></h1>
+    <p class="brand-sub">GAZUA - 주식 자동매매 에이전틱 AI 시스템</p>
   </div>
   <div class="masthead-meta">
     <span class="badge" id="mode-badge" hidden></span>
@@ -29,6 +29,24 @@
 </main>
 
 <template id="tpl-dashboard">
+  <!-- ── 시황 예상 (개장 전 AI 리서치) — 제목 바로 아래 노출 ─ -->
+  <section class="panel reveal panel-briefing" aria-labelledby="briefing-title" id="briefing-panel" hidden>
+    <header class="panel-head">
+      <div>
+        <h2 class="briefing-title" id="briefing-title">
+          <span id="briefing-title-date">시황 예상</span>
+          <span class="brief-badge" id="briefing-demo" hidden>샘플</span>
+        </h2>
+        <p class="panel-desc">개장 전 AI 리서치 — 섹터·매크로·지수 레벨 (매 거래일 08:00 발행)</p>
+      </div>
+      <select id="briefing-select" aria-label="브리핑 날짜 선택"></select>
+    </header>
+    <p class="brief-oneliner" id="briefing-headline"></p>
+    <button class="brief-toggle" id="briefing-toggle" type="button"
+            aria-expanded="false" aria-controls="briefing-body">상세보기</button>
+    <div class="brief-detail" id="briefing-body" hidden></div>
+  </section>
+
   <!-- ── KPI ───────────────────────────────────────────── -->
   <section class="kpis reveal" aria-label="핵심 지표" id="kpis"></section>
 
@@ -80,18 +98,6 @@
       <div class="chart-wrap chart-sm" id="monthly-chart" role="img" aria-label="월별 수익률 막대 차트"></div>
     </section>
   </div>
-
-  <!-- ── 금일 시황 예상 (개장 전 AI 리서치) ─────────────── -->
-  <section class="panel reveal" aria-label="금일 시황 예상" id="briefing-panel" hidden>
-    <header class="panel-head">
-      <div>
-        <h2>금일 시황 예상 <span class="brief-badge" id="briefing-demo" hidden>샘플</span></h2>
-        <p class="panel-desc">개장 전 AI 리서치 — 섹터·매크로·지수 레벨 (매 거래일 08:00 발행)</p>
-      </div>
-      <select id="briefing-select" aria-label="브리핑 날짜 선택"></select>
-    </header>
-    <div id="briefing-body"></div>
-  </section>
 
   <!-- ── 매매 히스토리 ─────────────────────────────────── -->
   <section class="panel reveal" aria-label="매매 히스토리">
