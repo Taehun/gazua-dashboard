@@ -53,7 +53,7 @@ async function loadAll() {
 
 /* ── 지표 계산 ───────────────────────────────────────────── */
 function computeMetrics(series, initialCapital) {
-  if (series.length < 2) return null;
+  if (!series.length) return null;
   const first = series[0], last = series[series.length - 1];
   const base = initialCapital || first.value;
   const totalReturn = last.value / base - 1;
@@ -63,10 +63,13 @@ function computeMetrics(series, initialCapital) {
   const rets = [];
   for (let i = 1; i < series.length; i++)
     rets.push(series[i].value / series[i - 1].value - 1);
-  const mean = rets.reduce((a, b) => a + b, 0) / rets.length;
-  const sd = Math.sqrt(rets.reduce((a, b) => a + (b - mean) ** 2, 0) / (rets.length - 1));
+  // 첫 거래일처럼 일별 수익률 표본이 없으면(또는 1개면) 변동성 지표는 0 으로 둔다.
+  const mean = rets.length ? rets.reduce((a, b) => a + b, 0) / rets.length : 0;
+  const sd = rets.length > 1
+    ? Math.sqrt(rets.reduce((a, b) => a + (b - mean) ** 2, 0) / (rets.length - 1))
+    : 0;
   const sharpe = sd > 0 ? (mean / sd) * Math.sqrt(252) : 0;
-  const winRate = rets.filter((r) => r > 0).length / rets.length;
+  const winRate = rets.length ? rets.filter((r) => r > 0).length / rets.length : 0;
 
   let peak = -Infinity, mdd = 0;
   const dd = series.map((p) => {
@@ -323,6 +326,10 @@ function renderEquityChart(host, series, tooltip) {
 /* ── 드로다운 차트 ───────────────────────────────────────── */
 function renderDrawdown(host, dd) {
   host.innerHTML = "";
+  if (dd.length < 2) {
+    host.innerHTML = '<p class="loading">표시할 데이터가 부족합니다</p>';
+    return;
+  }
   const W = 500, H = 200, M = { t: 10, r: 12, b: 22, l: 44 };
   const iw = W - M.l - M.r, ih = H - M.t - M.b;
   const lo = Math.min(...dd.map((d) => d.dd), -0.01) * 1.08;
@@ -361,6 +368,10 @@ function renderDrawdown(host, dd) {
 /* ── 월별 수익률 차트 ────────────────────────────────────── */
 function renderMonthly(host, months) {
   host.innerHTML = "";
+  if (months.length < 2) {
+    host.innerHTML = '<p class="loading">표시할 데이터가 부족합니다</p>';
+    return;
+  }
   const W = 500, H = 200, M = { t: 14, r: 12, b: 24, l: 44 };
   const iw = W - M.l - M.r, ih = H - M.t - M.b;
   const lo = Math.min(0, ...months.map((m) => m.ret)) * 1.15 - 0.001;
@@ -509,6 +520,7 @@ async function initBriefings() {
 
 /* ── KPI ────────────────────────────────────────────────── */
 function renderKPIs(host, m, meta, tradeCount) {
+  if (!m) { host.innerHTML = '<p class="loading">성과 지표 집계 전</p>'; return; }
   const sign = (v) => (v >= 0 ? "pos" : "neg");
   const benchName = meta.benchmark || "벤치마크";
   const items = [
@@ -616,10 +628,12 @@ function renderTrades(state) {
   app.appendChild($("#tpl-dashboard").content.cloneNode(true));
   app.removeAttribute("aria-busy");
 
+  // 모닝 브리프 — 성과 데이터와 무관하므로 가장 먼저, 비차단으로 렌더.
+  // (성과/차트 렌더가 실패하더라도 시황은 항상 표시되도록 분리)
+  initBriefings();   // 모닝 브리프 (데이터 있을 때만 표시 — 비차단)
+
   const metrics = computeMetrics(series, meta.initial_capital);
   renderKPIs($("#kpis"), metrics, meta, trades.length);
-
-  initBriefings();   // 모닝 브리프 (데이터 있을 때만 표시 — 비차단)
 
   $("#bench-name").textContent = meta.benchmark || "벤치마크";
   $("#legend-bench").textContent = meta.benchmark || "벤치마크";
