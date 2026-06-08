@@ -3,10 +3,10 @@
  "title": "가즈아 (GAZUA)",
  "subtitle": "한국 주식 레짐 기반 자동매매 에이전트",
  "mode": "paper",
- "demo": true,
+ "demo": false,
  "currency": "KRW",
  "initial_capital": 100000000.0,
- "inception": "2025-03-28",
+ "inception": "2026-06-08",
  "benchmark": "KOSPI 200",
  "universe": [
   {
@@ -100,5 +100,5 @@
    "role": "inverse_2x"
   }
  ],
- "updated_at": "2026-06-08T08:45:03+09:00"
+ "updated_at": "2026-06-08T15:45:05+09:00"
 }
