@@ -1,0 +1,20 @@
+{
+ "schema_version": 1,
+ "month": "2026-06",
+ "trades": [
+  {
+   "ts": "2026-06-09T13:43:44+09:00",
+   "cycle_id": "2026-06-09-5",
+   "ticker": "069500",
+   "name": "KODEX 200",
+   "side": "buy",
+   "qty": 92,
+   "price": 129370.0,
+   "amount": 11902040,
+   "status": "filled",
+   "reason": "rebalance 0.000→0.120",
+   "regime": "strong_bull",
+   "liquidation": false
+  }
+ ]
+}
