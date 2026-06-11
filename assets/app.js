@@ -79,10 +79,15 @@ function computeMetrics(series, initialCapital) {
     return { date: p.date, dd: d };
   });
 
+  // 벤치 가용 구간 기준 — 발행 측 벤치 조회가 fail-soft(null)라 결손일이 첫/끝에
+  // 끼어도 α가 '데이터 없음'으로 무너지지 않게, 벤치가 있는 첫~끝 점의 동일
+  // 구간에서 전략·벤치 수익률을 비교한다(벤치 전량 존재 시 기존 계산과 동일).
   let benchReturn = null, alpha = null;
-  if (first.benchmark && last.benchmark) {
-    benchReturn = last.benchmark / first.benchmark - 1;
-    alpha = totalReturn - benchReturn;   // 벤치 대비 초과수익 (%p)
+  const benchPts = series.filter((p) => p.benchmark);
+  if (benchPts.length >= 2) {
+    const bFirst = benchPts[0], bLast = benchPts[benchPts.length - 1];
+    benchReturn = bLast.benchmark / bFirst.benchmark - 1;
+    alpha = (bLast.value / bFirst.value - 1) - benchReturn;   // 동일 구간 초과수익 (%p)
   }
 
   return { totalReturn, cagr, sharpe, winRate, mdd, dd, benchReturn, alpha,
