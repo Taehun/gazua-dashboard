@@ -99,6 +99,48 @@
    "reason": "rebalance 0.000→0.228 [t3/3]",
    "regime": "bull",
    "liquidation": false
+  },
+  {
+   "ts": "2026-06-11T10:55:38+09:00",
+   "cycle_id": "2026-06-11-5",
+   "ticker": "122630",
+   "name": "KODEX 레버리지",
+   "side": "buy",
+   "qty": 80,
+   "price": 164851.0,
+   "amount": 13188080,
+   "status": "filled",
+   "reason": "rebalance 0.075→0.475 [t1/3]",
+   "regime": "strong_bull",
+   "liquidation": false
+  },
+  {
+   "ts": "2026-06-11T10:55:38+09:00",
+   "cycle_id": "2026-06-11-5",
+   "ticker": "122630",
+   "name": "KODEX 레버리지",
+   "side": "buy",
+   "qty": 80,
+   "price": 164851.0,
+   "amount": 13188080,
+   "status": "filled",
+   "reason": "rebalance 0.075→0.475 [t2/3]",
+   "regime": "strong_bull",
+   "liquidation": false
+  },
+  {
+   "ts": "2026-06-11T10:55:38+09:00",
+   "cycle_id": "2026-06-11-5",
+   "ticker": "122630",
+   "name": "KODEX 레버리지",
+   "side": "buy",
+   "qty": 80,
+   "price": 164851.0,
+   "amount": 13188080,
+   "status": "filled",
+   "reason": "rebalance 0.075→0.475 [t3/3]",
+   "regime": "strong_bull",
+   "liquidation": false
   }
  ]
 }
