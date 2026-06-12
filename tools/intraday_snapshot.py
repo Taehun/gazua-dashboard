@@ -1,22 +1,18 @@
 #!/usr/bin/env python3
-"""시간별 포트폴리오 스냅샷 수집 — stock-agent 서버 cron에서 실행.
+"""시간별 포트폴리오 스냅샷 수집 — 레포 데이터만으로 재구성 (GitHub Actions cron).
 
-stock-agent의 /trading/portfolio API(진실 소스)에서 현금·보유 종목을 읽고,
-네이버 시세 API에서 종목 현재가와 KOSPI200 지수를 받아
-data/intraday/YYYY-MM-DD.json 에 스냅샷을 append 한 뒤 commit & push 한다.
+외부 상태 없이 레포 안의 데이터만 사용한다:
+  - 포지션·현금: meta.json의 initial_capital + trades/*.json 체결 내역 재구성
+  - 현재가·벤치마크: 네이버 시세 API (종목 현재가, KOSPI200 지수)
 
-cron은 매시간 무조건 실행해도 된다 — 다음 경우 스스로 아무것도 안 하고 끝난다:
-  - KST 평일 08~18시 창 밖 (서버 타임존과 무관하게 KST로 판정)
-  - 직전 스냅샷과 평가액·벤치마크가 모두 동일 (휴장일, 시간외 미체결 등)
+결과를 data/intraday/YYYY-MM-DD.json 에 append 후 commit & push 한다.
 
-crontab 예시 (서버 타임존 무관, 정각 혼잡 회피를 위해 7분):
-  7 * * * * . "$HOME/.gazua-env"; cd "$HOME/gazua-dashboard" && \
-    /usr/bin/flock -n /tmp/gazua-intraday.lock \
-    python3 tools/intraday_snapshot.py >> "$HOME/gazua-intraday.log" 2>&1
+다음 경우 스스로 아무것도 안 하고 끝난다:
+  - KST 평일 08~18시 창 밖 (실행 환경 타임존과 무관하게 KST로 판정)
+  - 직전 스냅샷과 평가액·벤치마크가 모두 동일 (휴장일 등)
 
-환경변수:
-  TRADING_API_TOKEN  (필수) stock-agent API 키
-  PORTFOLIO_URL      (선택) 기본 http://127.0.0.1:8000/trading/portfolio
+재구성 현금이 음수면 trades 데이터 오염(유령 체결 등)이므로 기록하지 않고
+에러로 종료한다.
 
 옵션:
   --dry-run   스냅샷을 출력만 하고 파일·git 변경 없음
@@ -25,7 +21,6 @@ crontab 예시 (서버 타임존 무관, 정각 혼잡 회피를 위해 7분):
 """
 import argparse
 import json
-import os
 import subprocess
 import sys
 import urllib.request
@@ -36,8 +31,12 @@ from zoneinfo import ZoneInfo
 KST = ZoneInfo("Asia/Seoul")
 WINDOW_HOURS = range(8, 19)  # KST 08시~18시 (프리마켓 ~ 시간외 단일가 종료)
 RETENTION_FILES = 90         # intraday 일별 파일 보존 개수
+# trades에 fee 필드가 없어 수수료를 추정 차감한다. 실측값: 체결액의 1.49bp
+# (2026-06-12, /trading/portfolio 현금과 대조). agent가 fee를 기록하면 대체할 것.
+FEE_RATE = 0.000149
 REPO_DIR = Path(__file__).resolve().parent.parent
-INTRADAY_DIR = REPO_DIR / "data" / "intraday"
+DATA_DIR = REPO_DIR / "data"
+INTRADAY_DIR = DATA_DIR / "intraday"
 NAVER_STOCK = "https://m.stock.naver.com/api/stock/{}/basic"
 NAVER_KPI200 = "https://m.stock.naver.com/api/index/KPI200/basic"
 
@@ -46,19 +45,29 @@ def log(msg):
     print(f"[{datetime.now(KST).isoformat(timespec='seconds')}] {msg}", flush=True)
 
 
-def fetch_json(url, headers=None):
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", **(headers or {})})
+def fetch_json(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(req, timeout=15) as resp:
         return json.load(resp)
 
 
 def naver_price(ticker):
-    try:
-        d = fetch_json(NAVER_STOCK.format(ticker))
-        return int(float(d["closePrice"].replace(",", "")))
-    except Exception as e:
-        log(f"경고: {ticker} 시세 조회 실패 ({e}) — price=null로 기록")
-        return None
+    return int(float(fetch_json(NAVER_STOCK.format(ticker))["closePrice"].replace(",", "")))
+
+
+def reconstruct():
+    """meta.json + trades/*.json 에서 보유 수량과 현금을 재구성."""
+    meta = json.loads((DATA_DIR / "meta.json").read_text())
+    cash = meta["initial_capital"]
+    holdings = {}
+    for f in sorted((DATA_DIR / "trades").glob("????-??.json")):
+        for t in json.loads(f.read_text())["trades"]:
+            if t["status"] != "filled":
+                continue
+            sign = 1 if t["side"] == "buy" else -1
+            holdings[t["ticker"]] = holdings.get(t["ticker"], 0) + sign * t["qty"]
+            cash -= sign * t["amount"] + t.get("fee", t["amount"] * FEE_RATE)
+    return {tk: q for tk, q in holdings.items() if q}, cash
 
 
 def git(*args, check=True):
@@ -95,36 +104,33 @@ def main():
         log("KST 거래 시간창(평일 08~18시) 밖 — 종료")
         return 0
 
-    token = os.environ.get("TRADING_API_TOKEN")
-    if not token:
-        log("오류: TRADING_API_TOKEN 환경변수가 없음")
-        return 1
-    portfolio_url = os.environ.get("PORTFOLIO_URL", "http://127.0.0.1:8000/trading/portfolio")
+    use_git = not (opts.no_git or opts.dry_run)
+    if use_git:
+        git("pull", "--rebase", "--quiet", "origin", "main")
 
-    portfolio = fetch_json(portfolio_url, headers={"X-API-Key": token})
+    holdings, cash = reconstruct()
+    if cash < 0:
+        log(f"오류: 재구성 현금이 음수(₩{cash:,.0f}) — trades 데이터 오염 의심, 기록 중단")
+        return 1
+
+    positions = [{"ticker": tk, "qty": q, "price": naver_price(tk)}
+                 for tk, q in sorted(holdings.items())]
     idx = fetch_json(NAVER_KPI200)
     benchmark = float(idx["closePrice"].replace(",", ""))
 
     snapshot = {
         "ts": now.isoformat(timespec="seconds"),
-        "value": int(round(portfolio["total_value"])),
-        "cash": int(round(portfolio["cash"])),
+        "value": int(round(cash + sum(p["qty"] * p["price"] for p in positions))),
+        "cash": int(round(cash)),
         "benchmark": benchmark,
         "market_status": idx.get("marketStatus", ""),
-        "positions": [
-            {"ticker": tk, "qty": q, "price": naver_price(tk)}
-            for tk, q in sorted(portfolio["holdings"].items()) if q
-        ],
+        "positions": positions,
     }
 
     if opts.dry_run:
         log("dry-run — 스냅샷 출력만:")
         print(json.dumps(snapshot, ensure_ascii=False, indent=1))
         return 0
-
-    use_git = not opts.no_git
-    if use_git:
-        git("pull", "--rebase", "--quiet", "origin", "main")
 
     prev = last_snapshot() if INTRADAY_DIR.exists() else None
     if not opts.force and prev and \

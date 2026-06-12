@@ -36,21 +36,17 @@ commit & push 한다. 사람이 직접 편집하지 않는다.
 
 ### 장중 시간별 스냅샷
 
-`tools/intraday_snapshot.py`가 stock-agent 서버의 cron에서 매시간 실행되어
-`/trading/portfolio` API(진실 소스)의 현금·보유 종목·평가액과 네이버 KOSPI200
-지수를 `data/intraday/YYYY-MM-DD.json`에 append 후 commit & push 한다.
+`.github/workflows/intraday.yml`(GitHub Actions cron)이 KST 평일 08~18시 매시
+7분에 `tools/intraday_snapshot.py`를 실행한다. 외부 서버 의존 없이 **레포
+데이터만으로** 동작한다: `meta.json`의 초기자본 + `trades/*.json` 체결 내역으로
+포지션·현금을 재구성하고, 네이버 시세 API에서 종목 현재가와 KOSPI200 지수를
+받아 `data/intraday/YYYY-MM-DD.json`에 append 후 commit & push 한다.
 
 - KST 평일 08~18시(프리마켓~시간외 단일가) 밖이면 스스로 종료
 - 직전 스냅샷과 평가액·벤치마크가 같으면 스킵 (휴장일 자동 처리)
 - 일별 파일 90개 초과분은 자동 삭제 (intraday는 소모성 — 일별 확정치는 equity.json)
-
-서버 설치 (crontab, 서버 타임존 무관):
-
-```cron
-7 * * * * . "$HOME/.gazua-env"; cd "$HOME/gazua-dashboard" && /usr/bin/flock -n /tmp/gazua-intraday.lock python3 tools/intraday_snapshot.py >> "$HOME/gazua-intraday.log" 2>&1
-```
-
-`~/.gazua-env`에 `export TRADING_API_TOKEN=...` (권한 600).
+- 재구성 현금이 음수면 trades 오염(유령 체결 등)으로 보고 기록 없이 실패
+- trades에 `fee` 필드가 없는 동안은 체결액의 1.49bp(실측)를 수수료로 추정 차감
 
 ## 로컬 미리보기
 
