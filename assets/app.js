@@ -331,75 +331,6 @@ function renderEquityChart(host, series, tooltip) {
   });
 }
 
-/* ── 오늘 장중 차트 ──────────────────────────────────────── */
-function renderIntraday(host, snaps, baseValue, baseBench) {
-  host.innerHTML = "";
-  const W = 1000, H = 230, M = { t: 14, r: 16, b: 26, l: 56 };
-  const iw = W - M.l - M.r, ih = H - M.t - M.b;
-  const toMin = (ts) => +ts.slice(11, 13) * 60 + +ts.slice(14, 16);
-  const T0 = 8 * 60, T1 = 18 * 60 + 30;   // 표시 창: 08:00~18:30 (스냅샷 일과)
-
-  const port = snaps.map((s) => s.value / baseValue - 1);
-  const bench = baseBench
-    ? snaps.map((s) => (s.benchmark ? s.benchmark / baseBench - 1 : null))
-    : null;
-
-  let lo = Math.min(0, ...port), hi = Math.max(0, ...port);
-  if (bench) {
-    const bs = bench.filter((v) => v !== null);
-    if (bs.length) { lo = Math.min(lo, ...bs); hi = Math.max(hi, ...bs); }
-  }
-  const pad = (hi - lo) * 0.12 || 0.002;
-  lo -= pad; hi += pad;
-
-  const x = (ts) => M.l + ((Math.min(Math.max(toMin(ts), T0), T1) - T0) / (T1 - T0)) * iw;
-  const y = (v) => M.t + (1 - (v - lo) / (hi - lo)) * ih;
-
-  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, "aria-hidden": "true" });
-
-  for (const t of niceTicks(lo, hi, 4)) {
-    svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(t), y2: y(t), class: "gridline" }));
-    const lbl = svgEl("text", { x: M.l - 8, y: y(t) + 3.5, "text-anchor": "end", class: "axis-label" });
-    lbl.textContent = fmtPct(t, 1);
-    svg.appendChild(lbl);
-  }
-  for (const hr of [9, 12, 15, 18]) {
-    const xx = M.l + ((hr * 60 - T0) / (T1 - T0)) * iw;
-    svg.appendChild(svgEl("line", { x1: xx, x2: xx, y1: M.t, y2: M.t + ih, class: "gridline" }));
-    const lbl = svgEl("text", { x: xx, y: H - 7, "text-anchor": "middle", class: "axis-label" });
-    lbl.textContent = hr + "시";
-    svg.appendChild(lbl);
-  }
-  if (lo < 0 && hi > 0)
-    svg.appendChild(svgEl("line", {
-      x1: M.l, x2: W - M.r, y1: y(0), y2: y(0),
-      stroke: css("--line-strong"), "stroke-width": 1,
-    }));
-
-  if (bench) {
-    const bD = bench.map((v, i) => v === null ? "" :
-      `${i && bench[i - 1] !== null ? "L" : "M"}${x(snaps[i].ts).toFixed(1)},${y(v).toFixed(1)}`).join("");
-    svg.appendChild(svgEl("path", { d: bD, class: "bench-line" }));
-  }
-  const pD = port.map((v, i) =>
-    `${i ? "L" : "M"}${x(snaps[i].ts).toFixed(1)},${y(v).toFixed(1)}`).join("");
-  svg.appendChild(svgEl("path", { d: pD, class: "port-line" }));
-
-  // 스냅샷 점 (마지막 점 강조) — <title>로 네이티브 툴팁
-  snaps.forEach((s, i) => {
-    const dot = svgEl("circle", {
-      cx: x(s.ts).toFixed(1), cy: y(port[i]).toFixed(1),
-      r: i === snaps.length - 1 ? 4 : 2.5, class: "cross-dot",
-    });
-    const title = svgEl("title");
-    title.textContent = `${s.ts.slice(11, 16)} · ${fmtPct(port[i])} · ₩${fmtKRW(s.value)}`;
-    dot.appendChild(title);
-    svg.appendChild(dot);
-  });
-
-  host.appendChild(svg);
-}
-
 /* ── 드로다운 차트 ───────────────────────────────────────── */
 function renderDrawdown(host, dd) {
   host.innerHTML = "";
@@ -754,20 +685,6 @@ function renderTrades(state) {
     for (const b of $("#range-toggle").children) b.classList.toggle("active", b === btn);
     renderEquityChart($("#equity-chart"), sliceRange(btn.dataset.range), tooltip);
   });
-
-  // 오늘 장중 곡선 — 전일 종가 평가액 대비 (스냅샷 없으면 패널 비표시)
-  if (lastSnap) {
-    const prev = [...series].reverse().find((p) => p.date < intraday.date);
-    const baseValue = prev ? prev.value : meta.initial_capital || series[0].value;
-    const baseBench = prev ? prev.benchmark : snaps[0].benchmark || null;
-    $("#intraday-panel").hidden = false;
-    $("#intraday-legend-bench").textContent = meta.benchmark || "벤치마크";
-    renderIntraday($("#intraday-chart"), snaps, baseValue, baseBench);
-    const dayRet = lastSnap.value / baseValue - 1;
-    $("#intraday-stat").innerHTML =
-      `일중 <span class="${dayRet >= 0 ? "pos" : "neg"}">${fmtPct(dayRet)}</span>` +
-      ` · ${esc(lastSnap.ts.slice(11, 16))} 기준`;
-  }
 
   renderDrawdown($("#dd-chart"), metrics.dd);
   $("#mdd-stat").innerHTML = `MDD <span class="neg">${fmtPct(metrics.mdd)}</span>`;
