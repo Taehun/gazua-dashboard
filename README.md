@@ -16,7 +16,9 @@ data/
   equity.json         # 일별 평가액 + 벤치마크(KOSPI200) + 레짐
   trades/index.json   # 월 목록
   trades/YYYY-MM.json # 월별 매매 내역
+  intraday/YYYY-MM-DD.json     # 장중 시간별 스냅샷 (90일 보존)
 tools/generate_demo_data.py  # 데모 데이터 재생성 (실데이터 백테스트 출력)
+tools/intraday_snapshot.py   # 시간별 스냅샷 수집기 (stock-agent 서버 cron)
 ```
 
 **의존성 0** — 빌드 도구·외부 라이브러리·외부 요청 없음. 숫자용 모노 폰트(IBM Plex
@@ -31,6 +33,24 @@ commit & push 한다. 사람이 직접 편집하지 않는다.
 
 `meta.json`의 `demo: true`는 실거래가 아닌 백테스트 샘플 데이터임을 뜻하며,
 대시보드에 "샘플 데이터" 뱃지로 표시된다. 에이전트가 실기록을 push하면 `false`로 바뀐다.
+
+### 장중 시간별 스냅샷
+
+`tools/intraday_snapshot.py`가 stock-agent 서버의 cron에서 매시간 실행되어
+`/trading/portfolio` API(진실 소스)의 현금·보유 종목·평가액과 네이버 KOSPI200
+지수를 `data/intraday/YYYY-MM-DD.json`에 append 후 commit & push 한다.
+
+- KST 평일 08~18시(프리마켓~시간외 단일가) 밖이면 스스로 종료
+- 직전 스냅샷과 평가액·벤치마크가 같으면 스킵 (휴장일 자동 처리)
+- 일별 파일 90개 초과분은 자동 삭제 (intraday는 소모성 — 일별 확정치는 equity.json)
+
+서버 설치 (crontab, 서버 타임존 무관):
+
+```cron
+7 * * * * . "$HOME/.gazua-env"; cd "$HOME/gazua-dashboard" && /usr/bin/flock -n /tmp/gazua-intraday.lock python3 tools/intraday_snapshot.py >> "$HOME/gazua-intraday.log" 2>&1
+```
+
+`~/.gazua-env`에 `export TRADING_API_TOKEN=...` (권한 600).
 
 ## 로컬 미리보기
 
@@ -54,4 +74,12 @@ python3 -m http.server 8080
                 "qty": 120, "price": 21540.0, "amount": 2584800,
                 "status": "filled", "reason": "레짐 전환 bull", "regime": "bull",
                 "liquidation": false } ] }
+
+// intraday/2026-06-12.json — 장중 시간별 스냅샷
+{ "schema_version": 1, "date": "2026-06-12",
+  "snapshots": [ { "ts": "2026-06-12T10:07:00+09:00", "value": 104369910,
+                   "cash": 56925840, "benchmark": 1321.29,
+                   "market_status": "OPEN",
+                   "positions": [ { "ticker": "069500", "qty": 138,
+                                    "price": 133050 } ] } ] }
 ```
