@@ -37,7 +37,7 @@ commit & push 한다. 사람이 직접 편집하지 않는다.
 ### 장중 시간별 스냅샷
 
 `.github/workflows/intraday.yml`(GitHub Actions cron)이 KST 평일 08~18시 매시
-7분에 `tools/intraday_snapshot.py`를 실행한다. 외부 서버 의존 없이 **레포
+30분에 `tools/intraday_snapshot.py`를 실행한다. 외부 서버 의존 없이 **레포
 데이터만으로** 동작한다: `meta.json`의 초기자본 + `trades/*.json` 체결 내역으로
 포지션·현금을 재구성하고, 네이버 시세 API에서 종목 현재가와 KOSPI200 지수를
 받아 `data/intraday/YYYY-MM-DD.json`에 append 후 commit & push 한다.

@@ -36,10 +36,13 @@ async function fetchJSON(path) {
 }
 
 async function loadAll() {
-  const [meta, equity, tradesIdx] = await Promise.all([
+  // 장중 스냅샷은 오늘(KST) 파일 하나만 — 없으면(휴장/첫 스냅샷 전) 조용히 생략
+  const todayKST = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+  const [meta, equity, tradesIdx, intraday] = await Promise.all([
     fetchJSON("data/meta.json"),
     fetchJSON("data/equity.json"),
     fetchJSON("data/trades/index.json"),
+    fetchJSON(`data/intraday/${todayKST}.json`).catch(() => null),
   ]);
   const months = (tradesIdx.months || []).slice().sort().reverse();
   const monthFiles = await Promise.all(
@@ -48,7 +51,7 @@ async function loadAll() {
   const trades = monthFiles.filter(Boolean)
     .flatMap((f) => f.trades || [])
     .sort((a, b) => (a.ts < b.ts ? 1 : -1));
-  return { meta, series: equity.series || [], months, trades };
+  return { meta, series: equity.series || [], months, trades, intraday };
 }
 
 /* ── 지표 계산 ───────────────────────────────────────────── */
@@ -328,6 +331,75 @@ function renderEquityChart(host, series, tooltip) {
   });
 }
 
+/* ── 오늘 장중 차트 ──────────────────────────────────────── */
+function renderIntraday(host, snaps, baseValue, baseBench) {
+  host.innerHTML = "";
+  const W = 1000, H = 230, M = { t: 14, r: 16, b: 26, l: 56 };
+  const iw = W - M.l - M.r, ih = H - M.t - M.b;
+  const toMin = (ts) => +ts.slice(11, 13) * 60 + +ts.slice(14, 16);
+  const T0 = 8 * 60, T1 = 18 * 60 + 30;   // 표시 창: 08:00~18:30 (스냅샷 일과)
+
+  const port = snaps.map((s) => s.value / baseValue - 1);
+  const bench = baseBench
+    ? snaps.map((s) => (s.benchmark ? s.benchmark / baseBench - 1 : null))
+    : null;
+
+  let lo = Math.min(0, ...port), hi = Math.max(0, ...port);
+  if (bench) {
+    const bs = bench.filter((v) => v !== null);
+    if (bs.length) { lo = Math.min(lo, ...bs); hi = Math.max(hi, ...bs); }
+  }
+  const pad = (hi - lo) * 0.12 || 0.002;
+  lo -= pad; hi += pad;
+
+  const x = (ts) => M.l + ((Math.min(Math.max(toMin(ts), T0), T1) - T0) / (T1 - T0)) * iw;
+  const y = (v) => M.t + (1 - (v - lo) / (hi - lo)) * ih;
+
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, "aria-hidden": "true" });
+
+  for (const t of niceTicks(lo, hi, 4)) {
+    svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(t), y2: y(t), class: "gridline" }));
+    const lbl = svgEl("text", { x: M.l - 8, y: y(t) + 3.5, "text-anchor": "end", class: "axis-label" });
+    lbl.textContent = fmtPct(t, 1);
+    svg.appendChild(lbl);
+  }
+  for (const hr of [9, 12, 15, 18]) {
+    const xx = M.l + ((hr * 60 - T0) / (T1 - T0)) * iw;
+    svg.appendChild(svgEl("line", { x1: xx, x2: xx, y1: M.t, y2: M.t + ih, class: "gridline" }));
+    const lbl = svgEl("text", { x: xx, y: H - 7, "text-anchor": "middle", class: "axis-label" });
+    lbl.textContent = hr + "시";
+    svg.appendChild(lbl);
+  }
+  if (lo < 0 && hi > 0)
+    svg.appendChild(svgEl("line", {
+      x1: M.l, x2: W - M.r, y1: y(0), y2: y(0),
+      stroke: css("--line-strong"), "stroke-width": 1,
+    }));
+
+  if (bench) {
+    const bD = bench.map((v, i) => v === null ? "" :
+      `${i && bench[i - 1] !== null ? "L" : "M"}${x(snaps[i].ts).toFixed(1)},${y(v).toFixed(1)}`).join("");
+    svg.appendChild(svgEl("path", { d: bD, class: "bench-line" }));
+  }
+  const pD = port.map((v, i) =>
+    `${i ? "L" : "M"}${x(snaps[i].ts).toFixed(1)},${y(v).toFixed(1)}`).join("");
+  svg.appendChild(svgEl("path", { d: pD, class: "port-line" }));
+
+  // 스냅샷 점 (마지막 점 강조) — <title>로 네이티브 툴팁
+  snaps.forEach((s, i) => {
+    const dot = svgEl("circle", {
+      cx: x(s.ts).toFixed(1), cy: y(port[i]).toFixed(1),
+      r: i === snaps.length - 1 ? 4 : 2.5, class: "cross-dot",
+    });
+    const title = svgEl("title");
+    title.textContent = `${s.ts.slice(11, 16)} · ${fmtPct(port[i])} · ₩${fmtKRW(s.value)}`;
+    dot.appendChild(title);
+    svg.appendChild(dot);
+  });
+
+  host.appendChild(svg);
+}
+
 /* ── 드로다운 차트 ───────────────────────────────────────── */
 function renderDrawdown(host, dd) {
   host.innerHTML = "";
@@ -530,7 +602,8 @@ function renderKPIs(host, m, meta, tradeCount) {
   const benchName = meta.benchmark || "벤치마크";
   const items = [
     { label: "총 자산", value: "₩" + fmtKRW(m.lastValue), cls: "",
-      sub: `원금 ₩${fmtKRW(meta.initial_capital)}` },
+      sub: `원금 ₩${fmtKRW(meta.initial_capital)}` +
+           (m.liveTs ? ` · 장중 ${esc(m.liveTs)}` : "") },
     { label: "누적 수익률", value: fmtPct(m.totalReturn), cls: sign(m.totalReturn),
       sub: `매매 ${fmtNum(tradeCount)}건 · 일 승률 ${(m.winRate * 100).toFixed(1)}%` },
     // 벤치 대비 초과수익 — 미달이면 숨기지 않고 청색(하락색)으로 정직하게 표시
@@ -604,7 +677,9 @@ function renderTrades(state) {
     return;
   }
 
-  const { meta, series, months, trades } = data;
+  const { meta, series, months, trades, intraday } = data;
+  const snaps = (intraday && intraday.snapshots) || [];
+  const lastSnap = snaps.length ? snaps[snaps.length - 1] : null;
 
   // 마스트헤드
   const modeBadge = $("#mode-badge");
@@ -612,8 +687,11 @@ function renderTrades(state) {
   if (meta.mode === "live") { modeBadge.textContent = "실거래"; modeBadge.classList.add("live"); }
   else { modeBadge.textContent = "모의투자"; modeBadge.classList.add("paper"); }
   if (meta.demo) $("#demo-badge").hidden = false;
-  if (meta.updated_at)
-    $("#updated-at").textContent = "갱신 " + meta.updated_at.slice(0, 16).replace("T", " ");
+  // 갱신 시각 — 장중 스냅샷이 meta보다 최신이면 그 시각을 보여준다
+  const updatedTs = lastSnap && (!meta.updated_at || lastSnap.ts > meta.updated_at)
+    ? lastSnap.ts : meta.updated_at;
+  if (updatedTs)
+    $("#updated-at").textContent = "갱신 " + updatedTs.slice(0, 16).replace("T", " ");
 
   $("#foot-note").textContent = meta.demo
     ? "⚠ 현재 표시 중인 데이터는 동일 전략의 실데이터 백테스트 출력(샘플)입니다. 실거래 기록이 아닙니다."
@@ -638,6 +716,19 @@ function renderTrades(state) {
   initBriefings();   // 모닝 브리프 (데이터 있을 때만 표시 — 비차단)
 
   const metrics = computeMetrics(series, meta.initial_capital);
+
+  // 장중 스냅샷이 있으면 헤더 KPI의 현재가치 계열만 최신값으로 보정
+  // (CAGR·샤프·MDD 등 일별 표본 기반 지표는 일별 확정치 그대로 둔다)
+  if (metrics && lastSnap) {
+    metrics.lastValue = lastSnap.value;
+    metrics.totalReturn = lastSnap.value / (meta.initial_capital || series[0].value) - 1;
+    const b0 = series.find((p) => p.benchmark);
+    if (b0 && lastSnap.benchmark) {
+      metrics.benchReturn = lastSnap.benchmark / b0.benchmark - 1;
+      metrics.alpha = (lastSnap.value / b0.value - 1) - metrics.benchReturn;
+    }
+    metrics.liveTs = lastSnap.ts.slice(11, 16);
+  }
   renderKPIs($("#kpis"), metrics, meta, trades.length);
 
   $("#bench-name").textContent = meta.benchmark || "벤치마크";
@@ -663,6 +754,20 @@ function renderTrades(state) {
     for (const b of $("#range-toggle").children) b.classList.toggle("active", b === btn);
     renderEquityChart($("#equity-chart"), sliceRange(btn.dataset.range), tooltip);
   });
+
+  // 오늘 장중 곡선 — 전일 종가 평가액 대비 (스냅샷 없으면 패널 비표시)
+  if (lastSnap) {
+    const prev = [...series].reverse().find((p) => p.date < intraday.date);
+    const baseValue = prev ? prev.value : meta.initial_capital || series[0].value;
+    const baseBench = prev ? prev.benchmark : snaps[0].benchmark || null;
+    $("#intraday-panel").hidden = false;
+    $("#intraday-legend-bench").textContent = meta.benchmark || "벤치마크";
+    renderIntraday($("#intraday-chart"), snaps, baseValue, baseBench);
+    const dayRet = lastSnap.value / baseValue - 1;
+    $("#intraday-stat").innerHTML =
+      `일중 <span class="${dayRet >= 0 ? "pos" : "neg"}">${fmtPct(dayRet)}</span>` +
+      ` · ${esc(lastSnap.ts.slice(11, 16))} 기준`;
+  }
 
   renderDrawdown($("#dd-chart"), metrics.dd);
   $("#mdd-stat").innerHTML = `MDD <span class="neg">${fmtPct(metrics.mdd)}</span>`;
