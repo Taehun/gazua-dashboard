@@ -20,71 +20,6 @@
    "role": "long_2x"
   },
   {
-   "ticker": "005930",
-   "name": "삼성전자",
-   "role": "long"
-  },
-  {
-   "ticker": "000660",
-   "name": "SK하이닉스",
-   "role": "long"
-  },
-  {
-   "ticker": "042700",
-   "name": "한미반도체",
-   "role": "long"
-  },
-  {
-   "ticker": "058470",
-   "name": "리노공업",
-   "role": "long"
-  },
-  {
-   "ticker": "357780",
-   "name": "솔브레인",
-   "role": "long"
-  },
-  {
-   "ticker": "240810",
-   "name": "원익IPS",
-   "role": "long"
-  },
-  {
-   "ticker": "105560",
-   "name": "KB금융",
-   "role": "long"
-  },
-  {
-   "ticker": "055550",
-   "name": "신한지주",
-   "role": "long"
-  },
-  {
-   "ticker": "086790",
-   "name": "하나금융지주",
-   "role": "long"
-  },
-  {
-   "ticker": "305720",
-   "name": "KODEX 2차전지산업",
-   "role": "long"
-  },
-  {
-   "ticker": "091180",
-   "name": "KODEX 자동차",
-   "role": "long"
-  },
-  {
-   "ticker": "102780",
-   "name": "KODEX 삼성그룹",
-   "role": "long"
-  },
-  {
-   "ticker": "132030",
-   "name": "KODEX 골드선물(H)",
-   "role": "long"
-  },
-  {
    "ticker": "166400",
    "name": "TIGER 200커버드콜5%OTM",
    "role": "covered_call"
@@ -100,5 +35,5 @@
    "role": "inverse_2x"
   }
  ],
- "updated_at": "2026-06-12T10:04:27+09:00"
+ "updated_at": "2026-06-12T15:45:03+09:00"
 }
