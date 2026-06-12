@@ -533,8 +533,7 @@ function renderKPIs(host, m, meta, tradeCount) {
   const benchName = meta.benchmark || "벤치마크";
   const items = [
     { label: "총 자산", value: "₩" + fmtKRW(m.lastValue), cls: "",
-      sub: `원금 ₩${fmtKRW(meta.initial_capital)}` +
-           (m.liveTs ? ` · 장중 ${esc(m.liveTs)}` : "") },
+      sub: `원금 ₩${fmtKRW(meta.initial_capital)}` },
     { label: "누적 수익률", value: fmtPct(m.totalReturn), cls: sign(m.totalReturn),
       sub: `매매 ${fmtNum(tradeCount)}건 · 일 승률 ${(m.winRate * 100).toFixed(1)}%` },
     // 벤치 대비 초과수익 — 미달이면 숨기지 않고 청색(하락색)으로 정직하게 표시
@@ -658,7 +657,6 @@ function renderTrades(state) {
       metrics.benchReturn = lastSnap.benchmark / b0.benchmark - 1;
       metrics.alpha = (lastSnap.value / b0.value - 1) - metrics.benchReturn;
     }
-    metrics.liveTs = lastSnap.ts.slice(11, 16);
   }
   renderKPIs($("#kpis"), metrics, meta, trades.length);
 
