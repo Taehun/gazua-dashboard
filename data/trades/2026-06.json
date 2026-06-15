@@ -85,6 +85,36 @@
    "reason": "rebalance 0.000→0.087 [t1/3]",
    "regime": "strong_bull",
    "liquidation": false
+  },
+  {
+   "ts": "2026-06-15T10:04:16+09:00",
+   "cycle_id": "2026-06-15-1",
+   "ticker": "402340",
+   "name": "SK스퀘어",
+   "side": "buy",
+   "qty": 4,
+   "price": 1385000.0,
+   "amount": 5540000,
+   "fee": 831,
+   "status": "filled",
+   "reason": "rebalance 0.026→0.087",
+   "regime": "strong_bull",
+   "liquidation": false
+  },
+  {
+   "ts": "2026-06-15T10:04:16+09:00",
+   "cycle_id": "2026-06-15-1",
+   "ticker": "000660",
+   "name": "SK하이닉스",
+   "side": "buy",
+   "qty": 3,
+   "price": 2316000.0,
+   "amount": 6948000,
+   "fee": 1042,
+   "status": "filled",
+   "reason": "rebalance 0.022→0.087",
+   "regime": "strong_bull",
+   "liquidation": false
   }
  ]
 }
