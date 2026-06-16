@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="44 22 940 498" font-family="'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#5b78f0"/>
+    </marker>
+    <style>
+      .mono { font-family: 'IBM Plex Mono','SF Mono',Menlo,monospace; }
+      .agent { font-weight: 700; fill: #1e3a8a; font-size: 14.5px; }
+      .sub   { fill: #6b7280; font-size: 12px; }
+      .conn  { stroke: #5b78f0; stroke-width: 1.4; fill: none; }
+    </style>
+  </defs>
+
+  <rect x="44" y="22" width="940" height="498" fill="#ffffff"/>
+
+  <!-- 헤더 -->
+  <text x="58" y="44" class="mono" fill="#5b78f0" font-size="13" font-weight="700" letter-spacing="1.5">02 / ARCHITECTURE</text>
+  <text x="56" y="103" fill="#16223c" font-size="33" font-weight="800" letter-spacing="-0.5">일곱 에이전트는 이렇게 협업합니다</text>
+
+  <!-- 범례 -->
+  <rect x="714" y="153" width="12" height="12" rx="2.5" fill="#ffffff" stroke="#5b78f0" stroke-width="1.4"/>
+  <text x="732" y="163" class="sub">LLM 에이전트</text>
+  <rect x="845" y="153" width="12" height="12" rx="2.5" fill="#f7f9fb" stroke="#cfd8e3" stroke-width="1.4"/>
+  <text x="863" y="163" class="sub">결정론</text>
+  <text x="967" y="192" class="sub" font-size="11" fill="#9aa3b2" text-anchor="end">패널 3인 동시 분석 · 개별 실패는 결석 처리</text>
+
+  <!-- Router -->
+  <rect x="397" y="150" width="230" height="34" rx="6" fill="#f7f9fb" stroke="#cfd8e3" stroke-width="1.4"/>
+  <text x="512" y="172" class="mono" fill="#374151" font-size="14" font-weight="700" text-anchor="middle">Router · 패널 소집</text>
+
+  <!-- Router → 분석가 팬아웃 -->
+  <path class="conn" d="M512,184 L512,197 M227,197 L797,197 M227,197 L227,213 M512,197 L512,213 M797,197 L797,213"/>
+
+  <!-- 분석가 패널 3인 -->
+  <rect x="123" y="213" width="207" height="51" rx="8" fill="#ffffff" stroke="#5b78f0" stroke-width="1.4"/>
+  <text x="226" y="237" class="agent" text-anchor="middle">MarketAnalyst</text>
+  <text x="226" y="255" class="sub" text-anchor="middle">시장 · 기술적 해석</text>
+
+  <rect x="409" y="213" width="207" height="51" rx="8" fill="#ffffff" stroke="#5b78f0" stroke-width="1.4"/>
+  <text x="512" y="237" class="agent" text-anchor="middle">FundamentalAnalyst</text>
+  <text x="512" y="255" class="sub" text-anchor="middle">공시 · 밸류에이션</text>
+
+  <rect x="694" y="213" width="207" height="51" rx="8" fill="#ffffff" stroke="#5b78f0" stroke-width="1.4"/>
+  <text x="797" y="237" class="agent" text-anchor="middle">MacroAnalyst</text>
+  <text x="797" y="255" class="sub" text-anchor="middle">글로벌 매크로</text>
+
+  <!-- 분석가 → RiskManager 머지 -->
+  <path class="conn" d="M227,264 L227,281 M512,264 L512,281 M797,264 L797,281 M227,281 L797,281 M512,281 L512,305"/>
+
+  <!-- RiskManager -->
+  <rect x="397" y="305" width="230" height="51" rx="8" fill="#ffffff" stroke="#5b78f0" stroke-width="1.4"/>
+  <text x="512" y="329" class="agent" text-anchor="middle">RiskManager</text>
+  <text x="512" y="347" class="sub" text-anchor="middle">리스크 검증</text>
+
+  <!-- RiskManager → PM -->
+  <path class="conn" d="M512,356 L512,381"/>
+
+  <!-- PortfolioManager (강조) -->
+  <rect x="397" y="381" width="230" height="51" rx="8" fill="#eef3fe" stroke="#1f4fd8" stroke-width="1.6"/>
+  <text x="512" y="405" class="agent" text-anchor="middle">PortfolioManager</text>
+  <text x="512" y="423" class="sub" text-anchor="middle" fill="#3b5280">최종 의사결정자</text>
+
+  <!-- Reflection -->
+  <rect x="684" y="381" width="219" height="51" rx="8" fill="#ffffff" stroke="#5b78f0" stroke-width="1.4"/>
+  <text x="793" y="405" class="agent" text-anchor="middle">Reflection</text>
+  <text x="793" y="423" class="sub" text-anchor="middle">반박 심문 — 승인/수정/기각</text>
+  <text x="793" y="450" class="sub" font-size="11" fill="#9aa3b2" text-anchor="middle">수정안도 게이트를 다시 통과</text>
+
+  <!-- PM → Reflection -->
+  <path class="conn" marker-end="url(#arr)" d="M627,407 L678,407"/>
+
+  <!-- PM → 집행 -->
+  <path class="conn" marker-end="url(#arr)" d="M512,432 L512,455"/>
+
+  <!-- 집행 바 -->
+  <rect x="58" y="459" width="909" height="48" rx="6" fill="#f7f9fb" stroke="#e1e7ef" stroke-width="1.4"/>
+  <text x="82" y="478" class="mono" fill="#6b7280" font-size="11" letter-spacing="0.6">ENFORCEMENT &amp; EXECUTION — DETERMINISTIC</text>
+  <text x="82" y="497" class="mono" fill="#374151" font-size="13">자율성 게이트 → 하드 한도 enforce_limits → ExecutionAgent → KIS Open API</text>
+</svg>
