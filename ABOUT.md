@@ -97,6 +97,10 @@
 
 ## 7. 기술 스택
 
+**시스템 아키텍처** — 원본 데이터부터 KIS 주문 집행까지의 흐름:
+
+![가즈아 시스템 아키텍처 — FastAPI 앱이 기동한 docker compose 서버(APScheduler·결정론 코어·데이터 수집 계층·LangGraph 매매 팀·집행 큐)가 외부 데이터/LLM/KIS Open API와 연동하고 PostgreSQL에 상태·감사를 기록하며 공개 대시보드에 발행](assets/system-architecture.png)
+
 | 계층 | 구성 |
 |---|---|
 | **Runtime** | Python 3.12+ · FastAPI (async-first) · uv |
