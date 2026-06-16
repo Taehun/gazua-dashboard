@@ -24,6 +24,58 @@
   </div>
 </header>
 
+<!-- ── 에이전트 협업 구조 (기획 deck 02 / ARCHITECTURE 재현) ─ -->
+<div class="arch-wrap reveal">
+  <section class="panel arch" aria-labelledby="arch-title">
+    <header class="panel-head">
+      <div>
+        <h2 id="arch-title">에이전트 협업 구조</h2>
+        <p class="panel-desc">일곱 에이전트는 이렇게 협업합니다 · 패널 3인 동시 분석, 개별 실패는 결석 처리</p>
+      </div>
+      <div class="arch-head-side">
+        <div class="arch-legend" aria-hidden="true">
+          <span class="arch-key arch-key--llm">LLM 에이전트</span>
+          <span class="arch-key arch-key--det">결정론</span>
+        </div>
+        <a class="arch-doc-link" href="https://github.com/Taehun/gazua-dashboard/blob/main/ABOUT.md" target="_blank" rel="noopener">시스템 소개 ↗</a>
+      </div>
+    </header>
+
+    <div class="arch-flow">
+      <div class="arch-node arch-node--det arch-router">Router · 패널 소집</div>
+
+      <div class="arch-arrow" aria-hidden="true">▼</div>
+
+      <div class="arch-tier arch-tier--analysts">
+        <div class="arch-node arch-node--llm"><b>MarketAnalyst</b><span>시장 · 기술적 해석</span></div>
+        <div class="arch-node arch-node--llm"><b>FundamentalAnalyst</b><span>공시 · 밸류에이션</span></div>
+        <div class="arch-node arch-node--llm"><b>MacroAnalyst</b><span>글로벌 매크로</span></div>
+      </div>
+
+      <div class="arch-arrow" aria-hidden="true">▼</div>
+
+      <div class="arch-node arch-node--llm arch-solo"><b>RiskManager</b><span>리스크 검증</span></div>
+
+      <div class="arch-arrow" aria-hidden="true">▼</div>
+
+      <div class="arch-tier arch-tier--decide">
+        <div class="arch-node arch-node--llm arch-node--pm"><b>PortfolioManager</b><span>최종 의사결정자</span></div>
+        <div class="arch-node arch-node--llm arch-reflection">
+          <b>Reflection</b><span>반박 심문 — 승인 / 수정 / 기각</span>
+          <em>↺ 수정안도 게이트를 다시 통과</em>
+        </div>
+      </div>
+
+      <div class="arch-arrow" aria-hidden="true">▼</div>
+
+      <div class="arch-node arch-node--det arch-enforce">
+        <span class="arch-enforce-tag">ENFORCEMENT &amp; EXECUTION — DETERMINISTIC</span>
+        <span class="arch-enforce-chain">자율성 게이트 <i>→</i> 하드 한도 <code>enforce_limits</code> <i>→</i> ExecutionAgent <i>→</i> KIS Open API</span>
+      </div>
+    </div>
+  </section>
+</div>
+
 <main id="app" aria-busy="true">
   <p class="loading" id="loading">데이터 불러오는 중…</p>
 </main>
