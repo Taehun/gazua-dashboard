@@ -141,6 +141,13 @@ main, header.masthead, footer { position: relative; z-index: 1; }
   letter-spacing: .04em;
 }
 
+.brand-sub a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px dotted var(--line-strong);
+}
+.brand-sub a:hover { color: var(--ink); border-bottom-color: var(--ink-faint); }
+
 .masthead-meta {
   display: flex;
   align-items: center;

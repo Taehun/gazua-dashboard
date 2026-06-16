@@ -47,7 +47,11 @@
 
 > 사람 팀과 다른 점 — **매일 출근하고, 감정이 없고, 모든 발언이 기록됩니다.**
 
-**협업 흐름**: `Router(패널 소집)` → `애널리스트 3인 병렬 분석`(개별 실패는 결석 처리) → `RiskManager 검증` → `PortfolioManager 결정` → `Reflection 반박 심문`(수정안도 게이트를 다시 통과) → `자율성 게이트 → enforce_limits 하드 한도 → ExecutionAgent → KIS Open API`.
+**협업 구조** — 일곱 에이전트는 이렇게 협업합니다:
+
+![가즈아 에이전트 협업 구조 — Router 패널 소집 → 애널리스트 3인 병렬 분석 → RiskManager → PortfolioManager·Reflection → 결정론 집행 파이프라인](assets/architecture.png)
+
+`Router(패널 소집)` → `애널리스트 3인 병렬 분석`(개별 실패는 결석 처리) → `RiskManager 검증` → `PortfolioManager 결정` → `Reflection 반박 심문`(수정안도 게이트를 다시 통과) → `자율성 게이트 → enforce_limits 하드 한도 → ExecutionAgent → KIS Open API`.
 
 ---
 
