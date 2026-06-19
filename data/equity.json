@@ -54,6 +54,12 @@
    "value": 115153356,
    "benchmark": 1449.34,
    "regime": "strong_bull"
+  },
+  {
+   "date": "2026-06-19",
+   "value": 115696112,
+   "benchmark": 1440.66,
+   "regime": "strong_bull"
   }
  ]
 }
