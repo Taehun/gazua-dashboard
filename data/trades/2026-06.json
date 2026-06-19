@@ -340,6 +340,21 @@
    "reason": "rebalance 0.000→0.083 [t3/3]",
    "regime": "strong_bull",
    "liquidation": false
+  },
+  {
+   "ts": "2026-06-19T10:03:27+09:00",
+   "cycle_id": "2026-06-19-1",
+   "ticker": "009155",
+   "name": "삼성전기우",
+   "side": "sell",
+   "qty": 2,
+   "price": 827500.0,
+   "amount": 1655000,
+   "fee": 248,
+   "status": "filled",
+   "reason": "rebalance 0.097→0.083",
+   "regime": "strong_bull",
+   "liquidation": false
   }
  ]
 }
