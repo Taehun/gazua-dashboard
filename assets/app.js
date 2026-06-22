@@ -25,6 +25,8 @@ const fmtKRW = (x) => {
   return Math.round(x).toLocaleString("ko-KR");
 };
 const fmtNum = (x) => x.toLocaleString("ko-KR");
+const fmtWonFull = (x) => (x < 0 ? "-" : "") + "₩" + Math.round(Math.abs(x)).toLocaleString("ko-KR");
+const fmtSignWon = (x) => (x >= 0 ? "+" : "-") + fmtKRW(Math.abs(x));
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -35,14 +37,24 @@ async function fetchJSON(path) {
   return res.json();
 }
 
+// 장중 스냅샷은 날짜별 파일 — 인덱스가 없으므로 오늘(KST)부터 최대 maxBack일
+// 거슬러 올라가 가장 최근 파일을 찾는다(주말·휴장이면 직전 거래일 스냅샷 사용).
+async function loadLatestIntraday(maxBack = 10) {
+  const baseMs = Date.now() + 9 * 3600e3;
+  for (let k = 0; k <= maxBack; k++) {
+    const d = new Date(baseMs - k * 86400e3).toISOString().slice(0, 10);
+    const snap = await fetchJSON(`data/intraday/${d}.json`).catch(() => null);
+    if (snap) return snap;
+  }
+  return null;
+}
+
 async function loadAll() {
-  // 장중 스냅샷은 오늘(KST) 파일 하나만 — 없으면(휴장/첫 스냅샷 전) 조용히 생략
-  const todayKST = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
   const [meta, equity, tradesIdx, intraday] = await Promise.all([
     fetchJSON("data/meta.json"),
     fetchJSON("data/equity.json"),
     fetchJSON("data/trades/index.json"),
-    fetchJSON(`data/intraday/${todayKST}.json`).catch(() => null),
+    loadLatestIntraday(),
   ]);
   const months = (tradesIdx.months || []).slice().sort().reverse();
   const monthFiles = await Promise.all(
@@ -72,7 +84,27 @@ function computeMetrics(series, initialCapital) {
     ? Math.sqrt(rets.reduce((a, b) => a + (b - mean) ** 2, 0) / (rets.length - 1))
     : 0;
   const sharpe = sd > 0 ? (mean / sd) * Math.sqrt(252) : 0;
+  const vol = sd * Math.sqrt(252);   // 연환산 변동성
   const winRate = rets.length ? rets.filter((r) => r > 0).length / rets.length : 0;
+
+  // 베타(β) — 벤치 대비 민감도. 같은 날 전략·벤치 일별 수익률이 둘 다
+  // 존재하는 구간에서 cov(port,bench)/var(bench). 표본 부족 시 null.
+  let beta = null;
+  const pr = [], br = [];
+  for (let i = 1; i < series.length; i++) {
+    const a = series[i], b = series[i - 1];
+    if (a.benchmark && b.benchmark) {
+      pr.push(a.value / b.value - 1);
+      br.push(a.benchmark / b.benchmark - 1);
+    }
+  }
+  if (br.length >= 2) {
+    const pm = pr.reduce((x, y) => x + y, 0) / pr.length;
+    const bm = br.reduce((x, y) => x + y, 0) / br.length;
+    let cov = 0, varb = 0;
+    for (let i = 0; i < br.length; i++) { cov += (pr[i] - pm) * (br[i] - bm); varb += (br[i] - bm) ** 2; }
+    beta = varb > 0 ? cov / varb : null;
+  }
 
   let peak = -Infinity, mdd = 0;
   const dd = series.map((p) => {
@@ -93,25 +125,25 @@ function computeMetrics(series, initialCapital) {
     alpha = (bLast.value / bFirst.value - 1) - benchReturn;   // 동일 구간 초과수익 (%p)
   }
 
-  return { totalReturn, cagr, sharpe, winRate, mdd, dd, benchReturn, alpha,
+  return { totalReturn, cagr, sharpe, vol, beta, winRate, mdd, dd, benchReturn, alpha,
            years, lastValue: last.value, days: series.length };
 }
 
-function monthlyReturns(series) {
-  const out = [];
-  let prevEnd = null, curMonth = null, lastPoint = null;
-  for (const p of series) {
-    const m = p.date.slice(0, 7);
-    if (curMonth !== null && m !== curMonth) {
-      out.push({ month: curMonth, ret: lastPoint.value / (prevEnd ?? series[0].value) - 1 });
-      prevEnd = lastPoint.value;
-    }
-    if (curMonth === null) prevEnd = p.value;
-    curMonth = m;
-    lastPoint = p;
-  }
-  if (curMonth) out.push({ month: curMonth, ret: lastPoint.value / (prevEnd ?? series[0].value) - 1 });
-  return out;
+/* 기간별 수익률 — 최근 N거래일·YTD·전체 구간 누적 수익률.
+   현재가치(curValue)는 장중 스냅샷 보정값을 받아 최신 기준으로 계산. */
+function periodReturns(series, curValue) {
+  if (!series.length) return [];
+  const cur = curValue || series[series.length - 1].value;
+  const back = (n) => series[Math.max(0, series.length - 1 - n)].value;
+  const curYear = series[series.length - 1].date.slice(0, 4);
+  const ytdBase = (series.find((p) => p.date.slice(0, 4) === curYear) || series[0]).value;
+  return [
+    { label: "1개월", ret: cur / back(21) - 1 },
+    { label: "3개월", ret: cur / back(63) - 1 },
+    { label: "6개월", ret: cur / back(126) - 1 },
+    { label: "YTD", ret: cur / ytdBase - 1 },
+    { label: "1년 (누적)", ret: cur / series[0].value - 1 },
+  ];
 }
 
 /* ── SVG 헬퍼 ───────────────────────────────────────────── */
@@ -331,104 +363,114 @@ function renderEquityChart(host, series, tooltip) {
   });
 }
 
-/* ── 드로다운 차트 ───────────────────────────────────────── */
-function renderDrawdown(host, dd) {
+/* ── 자산 배분 도넛 (보유 종목별) ────────────────────────── */
+// 종목 슬라이스 색 — 라이트/다크 양쪽에서 구분되는 카테고리 팔레트
+const ALLOC_PALETTE = [
+  "#e7b75f", "#3aa98c", "#a770ff", "#4d8dff", "#ff4d57",
+  "#5cc8c0", "#e57ab0", "#8aa0b8",
+];
+
+function renderAlloc(host, slices) {
   host.innerHTML = "";
-  if (dd.length < 2) {
-    host.innerHTML = '<p class="loading">표시할 데이터가 부족합니다</p>';
+  if (!slices.length) {
+    host.innerHTML = '<p class="loading">보유 종목 데이터 없음</p>';
     return;
   }
-  const W = 500, H = 200, M = { t: 10, r: 12, b: 22, l: 44 };
-  const iw = W - M.l - M.r, ih = H - M.t - M.b;
-  const lo = Math.min(...dd.map((d) => d.dd), -0.01) * 1.08;
+  const total = slices.reduce((a, s) => a + s.value, 0) || 1;
+  const R = 52, RIN = 33, C = 60, GAP = 0.014;   // 도넛 반경·중심·슬라이스 간격
+  const svg = svgEl("svg", { viewBox: "0 0 120 120", class: "donut-svg", "aria-hidden": "true" });
+  let ang = -Math.PI / 2;   // 12시 방향 시작
+  const polar = (r, a) => [C + r * Math.cos(a), C + r * Math.sin(a)];
+  slices.forEach((s, i) => {
+    const frac = s.value / total;
+    const a0 = ang + GAP, a1 = ang + frac * 2 * Math.PI - GAP;
+    ang += frac * 2 * Math.PI;
+    if (a1 <= a0) return;
+    const large = a1 - a0 > Math.PI ? 1 : 0;
+    const [x0, y0] = polar(R, a0), [x1, y1] = polar(R, a1);
+    const [xi1, yi1] = polar(RIN, a1), [xi0, yi0] = polar(RIN, a0);
+    const d = `M${x0.toFixed(2)},${y0.toFixed(2)} A${R},${R} 0 ${large} 1 ${x1.toFixed(2)},${y1.toFixed(2)}`
+      + ` L${xi1.toFixed(2)},${yi1.toFixed(2)} A${RIN},${RIN} 0 ${large} 0 ${xi0.toFixed(2)},${yi0.toFixed(2)} Z`;
+    const path = svgEl("path", { d, fill: s.color || ALLOC_PALETTE[i % ALLOC_PALETTE.length] });
+    const title = svgEl("title");
+    title.textContent = `${s.label} ${(frac * 100).toFixed(1)}%`;
+    path.appendChild(title);
+    svg.appendChild(path);
+  });
+  // 중앙 라벨 — 보유 종목 수
+  const holdN = slices.filter((s) => !s.cash).length;
+  const big = svgEl("text", { x: C, y: C - 2, "text-anchor": "middle", class: "donut-center-num" });
+  big.textContent = String(holdN);
+  const small = svgEl("text", { x: C, y: C + 12, "text-anchor": "middle", class: "donut-center-lbl" });
+  small.textContent = "종목";
+  svg.append(big, small);
 
-  const x = (i) => M.l + (i / (dd.length - 1)) * iw;
-  const y = (v) => M.t + (v / lo) * ih;
+  const legend = document.createElement("ul");
+  legend.className = "alloc-legend";
+  legend.innerHTML = slices.map((s, i) => `
+    <li>
+      <span class="dot" style="--c:${s.color || ALLOC_PALETTE[i % ALLOC_PALETTE.length]}"></span>
+      <span class="alloc-name">${esc(s.label)}</span>
+      <span class="alloc-pct">${((s.value / total) * 100).toFixed(0)}%</span>
+    </li>`).join("");
 
-  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, "aria-hidden": "true" });
-
-  for (const t of niceTicks(lo, 0, 4)) {
-    svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(t), y2: y(t), class: "gridline" }));
-    const lbl = svgEl("text", { x: M.l - 6, y: y(t) + 3, "text-anchor": "end", class: "axis-label" });
-    lbl.textContent = Math.round(t * 100) + "%";
-    svg.appendChild(lbl);
-  }
-  const nx = 4;
-  for (let k = 0; k < nx; k++) {
-    const i = Math.round((k / (nx - 1)) * (dd.length - 1));
-    const lbl = svgEl("text", {
-      x: x(i), y: H - 5,
-      "text-anchor": k === 0 ? "start" : k === nx - 1 ? "end" : "middle",
-      class: "axis-label",
-    });
-    lbl.textContent = dateLabel(dd[i].date);
-    svg.appendChild(lbl);
-  }
-
-  const d = dd.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.dd).toFixed(1)}`).join("");
-  svg.appendChild(svgEl("path", {
-    d: `M${x(0)},${y(0)}${d.replace(/^M/, "L")}L${x(dd.length - 1)},${y(0)}Z`,
-    class: "dd-area",
-  }));
-  host.appendChild(svg);
+  const wrap = document.createElement("div");
+  wrap.className = "donut-wrap";
+  wrap.append(svg);
+  host.append(wrap, legend);
 }
 
-/* ── 월별 수익률 차트 ────────────────────────────────────── */
-function renderMonthly(host, months) {
-  host.innerHTML = "";
-  if (months.length < 2) {
-    host.innerHTML = '<p class="loading">표시할 데이터가 부족합니다</p>';
+/* ── 보유 상위 종목 테이블 ───────────────────────────────── */
+function renderHoldings(holdings) {
+  const body = $("#holdings-body");
+  if (!holdings.length) {
+    body.innerHTML = `<tr class="empty-row"><td colspan="4">보유 종목 데이터가 없습니다</td></tr>`;
+    $("#holdings-count").textContent = "";
     return;
   }
-  const W = 500, H = 200, M = { t: 14, r: 12, b: 24, l: 44 };
-  const iw = W - M.l - M.r, ih = H - M.t - M.b;
-  const lo = Math.min(0, ...months.map((m) => m.ret)) * 1.15 - 0.001;
-  const hi = Math.max(0, ...months.map((m) => m.ret)) * 1.15 + 0.001;
+  $("#holdings-count").textContent = `전체 ${holdings.length}종목`;
+  body.innerHTML = holdings.map((h) => {
+    const plCls = h.pl >= 0 ? "pos" : "neg";
+    const retCls = h.ret >= 0 ? "pos" : "neg";
+    return `<tr>
+      <td class="td-name">${esc(h.name)}<span class="ticker">${esc(h.ticker)}</span></td>
+      <td class="num">${(h.weight * 100).toFixed(1)}%</td>
+      <td class="num ${h.pl != null ? plCls : ""}">${h.pl != null ? fmtSignWon(h.pl) : "—"}</td>
+      <td class="num ${h.ret != null ? retCls : ""}">${h.ret != null ? fmtPct(h.ret) : "—"}</td>
+    </tr>`;
+  }).join("");
+}
 
-  const y = (v) => M.t + (1 - (v - lo) / (hi - lo)) * ih;
-  const bw = iw / months.length;
+/* ── 리스크 지표 ─────────────────────────────────────────── */
+function renderRisk(m) {
+  const host = $("#risk-list");
+  if (!m) { host.innerHTML = '<p class="loading">집계 전</p>'; return; }
+  const rows = [
+    { label: "변동성 (연)", value: (m.vol * 100).toFixed(1) + "%", cls: "" },
+    { label: "샤프지수", value: m.sharpe.toFixed(2), cls: "accent" },
+    { label: "최대낙폭 (MDD)", value: fmtPct(m.mdd), cls: "neg" },
+    { label: "베타 (β)", value: m.beta != null ? m.beta.toFixed(2) : "—", cls: "" },
+  ];
+  host.innerHTML = rows.map((r) => `
+    <div class="risk-row">
+      <dt>${r.label}</dt>
+      <dd class="${r.cls}">${r.value}</dd>
+    </div>`).join("");
+}
 
-  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, "aria-hidden": "true" });
-
-  for (const t of niceTicks(lo, hi, 4)) {
-    svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(t), y2: y(t), class: "gridline" }));
-    const lbl = svgEl("text", { x: M.l - 6, y: y(t) + 3, "text-anchor": "end", class: "axis-label" });
-    lbl.textContent = Math.round(t * 100) + "%";
-    svg.appendChild(lbl);
-  }
-
-  months.forEach((m, i) => {
-    const positive = m.ret >= 0;
-    const bx = M.l + i * bw + bw * 0.18;
-    const by = positive ? y(m.ret) : y(0);
-    const bh = Math.max(Math.abs(y(m.ret) - y(0)), 1);
-    const rect = svgEl("rect", {
-      x: bx.toFixed(1), y: by.toFixed(1),
-      width: (bw * 0.64).toFixed(1), height: bh.toFixed(1),
-      rx: 2, fill: positive ? css("--up") : css("--down"),
-      opacity: ".85",
-    });
-    const title = svgEl("title");
-    title.textContent = `${m.month} ${fmtPct(m.ret)}`;
-    rect.appendChild(title);
-    svg.appendChild(rect);
-
-    // 라벨 (밀도에 따라 건너뜀)
-    const step = Math.ceil(months.length / 8);
-    if (i % step === 0) {
-      const lbl = svgEl("text", {
-        x: bx + bw * 0.32, y: H - 6, "text-anchor": "middle", class: "axis-label",
-      });
-      lbl.textContent = m.month.slice(2).replace("-", ".");
-      svg.appendChild(lbl);
-    }
-  });
-
-  svg.appendChild(svgEl("line", {
-    x1: M.l, x2: W - M.r, y1: y(0), y2: y(0),
-    stroke: css("--line-strong"), "stroke-width": 1,
-  }));
-  host.appendChild(svg);
+/* ── 기간별 수익률 (막대) ────────────────────────────────── */
+function renderPeriods(host, periods) {
+  const maxAbs = Math.max(0.0001, ...periods.map((p) => Math.abs(p.ret)));
+  host.innerHTML = periods.map((p) => {
+    const cls = p.ret >= 0 ? "pos" : "neg";
+    const w = (Math.abs(p.ret) / maxAbs) * 100;
+    return `
+      <div class="period-row">
+        <span class="period-label">${esc(p.label)}</span>
+        <span class="period-bar"><i class="${cls}" style="width:${w.toFixed(1)}%"></i></span>
+        <span class="period-val ${cls}">${fmtPct(p.ret)}</span>
+      </div>`;
+  }).join("");
 }
 
 /* ── 모닝 브리프 — 섹터·매크로·지수 레벨만 (종목 권고 없음, 준법) ── */
@@ -526,32 +568,44 @@ async function initBriefings() {
   await load(dates[0]);
 }
 
-/* ── KPI ────────────────────────────────────────────────── */
-function renderKPIs(host, m, meta, tradeCount) {
+/* ── KPI (히어로 3카드) ─────────────────────────────────── */
+function renderKPIs(host, m, meta, dayChange) {
   if (!m) { host.innerHTML = '<p class="loading">성과 지표 집계 전</p>'; return; }
   const sign = (v) => (v >= 0 ? "pos" : "neg");
   const benchName = meta.benchmark || "벤치마크";
-  const items = [
-    { label: "총 자산", value: "₩" + fmtKRW(m.lastValue), cls: "",
-      sub: `원금 ₩${fmtKRW(meta.initial_capital)}` },
-    { label: "누적 수익률", value: fmtPct(m.totalReturn), cls: sign(m.totalReturn),
-      sub: `매매 ${fmtNum(tradeCount)}건 · 일 승률 ${(m.winRate * 100).toFixed(1)}%` },
-    // 벤치 대비 초과수익 — 미달이면 숨기지 않고 청색(하락색)으로 정직하게 표시
-    { label: `vs ${benchName} (α)`,
-      value: m.alpha !== null ? fmtPct(m.alpha) + "p" : "—",
-      cls: m.alpha !== null ? sign(m.alpha) : "",
-      sub: m.benchReturn !== null ? `벤치 ${fmtPct(m.benchReturn)}` : "벤치 데이터 없음" },
-    { label: "CAGR", value: fmtPct(m.cagr), cls: sign(m.cagr),
-      sub: `연환산 · 표본 ${m.years.toFixed(1)}년` },
-    { label: "최대 낙폭", value: fmtPct(m.mdd), cls: "neg", sub: "고점 대비" },
-    { label: "샤프 지수", value: m.sharpe.toFixed(2), cls: "",
-      sub: `연환산 · ${m.days}거래일` },
+
+  // 1) 총 자산 — 전일 대비 변화 뱃지
+  const dc = dayChange || {};
+  const dcSign = (dc.pct ?? 0) >= 0;
+  const cards = [`
+    <article class="kpi-card">
+      <h3 class="kpi-label">총 자산 <span class="kpi-label-sub">(원금 ${fmtWonFull(meta.initial_capital)})</span></h3>
+      <p class="kpi-value">${fmtWonFull(m.lastValue)}</p>
+      ${dc.pct != null ? `
+        <p class="kpi-foot">
+          <span class="kpi-chip ${dcSign ? "pos" : "neg"}">${dcSign ? "▲" : "▼"} ${fmtPct(dc.pct)}</span>
+          <span class="kpi-foot-dim">전일 대비 ${fmtSignWon(dc.abs)}</span>
+        </p>` : ""}
+    </article>`,
+  // 2) 누적 수익률 — 연환산(CAGR) 보조
+    `<article class="kpi-card">
+      <h3 class="kpi-label">누적 수익률</h3>
+      <p class="kpi-value big ${sign(m.totalReturn)}">${fmtPct(m.totalReturn)}<span class="kpi-value-amt">(${fmtSignWon(m.lastValue - (meta.initial_capital || m.lastValue))})</span></p>
+      <p class="kpi-foot"><span class="kpi-foot-dim">연환산 수익률</span>
+        <strong class="${sign(m.cagr)}">${fmtPct(m.cagr)}</strong>
+        <span class="kpi-foot-dim">(${fmtSignWon((meta.initial_capital || m.lastValue) * m.cagr)})</span></p>
+    </article>`,
+  // 3) vs 벤치마크 — α(%p)
+    `<article class="kpi-card">
+      <h3 class="kpi-label">vs ${esc(benchName)}</h3>
+      <p class="kpi-value big ${m.alpha != null ? sign(m.alpha) : ""}">${m.alpha != null ? fmtPct(m.alpha) + "p" : "—"}</p>
+      <p class="kpi-foot">
+        <span class="kpi-foot-dim">포트폴리오 <strong class="${sign(m.totalReturn)}">${fmtPct(m.totalReturn)}</strong></span>
+        <span class="kpi-foot-dim">${esc(benchName)} ${m.benchReturn != null ? `<strong class="${sign(m.benchReturn)}">${fmtPct(m.benchReturn)}</strong>` : "—"}</span>
+      </p>
+    </article>`,
   ];
-  host.innerHTML = items.map((it) => `
-    <dl class="kpi">
-      <dt>${it.label}</dt>
-      <dd class="${it.cls}">${it.value}${it.sub ? `<span class="sub">${it.sub}</span>` : ""}</dd>
-    </dl>`).join("");
+  host.innerHTML = cards.join("");
 }
 
 /* ── 매매 테이블 ─────────────────────────────────────────── */
@@ -589,6 +643,26 @@ function renderTrades(state) {
   });
   body.innerHTML = rows.join("");
   $("#trades-more").hidden = filtered.length <= shown;
+}
+
+/* ── 테마 토글 ──────────────────────────────────────────── */
+// 초기 테마는 <head>의 인라인 부트스트랩이 이미 적용. 여기선 버튼·전환만 담당.
+// onChange: 색을 CSS 변수에서 읽어 굽는 SVG 차트를 다시 그리는 콜백.
+function initThemeToggle(onChange) {
+  const btn = $("#theme-toggle");
+  if (!btn) return;
+  const root = document.documentElement;
+  const apply = (theme) => {
+    root.setAttribute("data-theme", theme);
+    btn.setAttribute("aria-pressed", String(theme === "light"));
+  };
+  apply(root.getAttribute("data-theme") || "dark");
+  btn.addEventListener("click", () => {
+    const next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+    apply(next);
+    try { localStorage.setItem("gazua-theme", next); } catch { /* 사파리 사생활 모드 등 */ }
+    if (typeof onChange === "function") onChange();
+  });
 }
 
 /* ── 부트스트랩 ──────────────────────────────────────────── */
@@ -658,7 +732,18 @@ function renderTrades(state) {
       metrics.alpha = (lastSnap.value / b0.value - 1) - metrics.benchReturn;
     }
   }
-  renderKPIs($("#kpis"), metrics, meta, trades.length);
+  // 전일 대비 변화 — 스냅샷이 시리즈 마지막일보다 새 날짜면 마지막 종가가 전일,
+  // 같은 날이면 그 직전 거래일 종가가 전일.
+  const dayChange = (() => {
+    const cur = metrics.lastValue;
+    const lastDate = series[series.length - 1].date;
+    let prev;
+    if (lastSnap && lastSnap.ts.slice(0, 10) > lastDate) prev = series[series.length - 1].value;
+    else if (series.length >= 2) prev = series[series.length - 2].value;
+    else return {};
+    return prev ? { pct: cur / prev - 1, abs: cur - prev } : {};
+  })();
+  renderKPIs($("#kpis"), metrics, meta, dayChange);
 
   $("#bench-name").textContent = meta.benchmark || "벤치마크";
   $("#legend-bench").textContent = meta.benchmark || "벤치마크";
@@ -668,29 +753,75 @@ function renderTrades(state) {
   $("#legend-regimes").innerHTML = seen.map((r) =>
     `<span class="key-rg" style="--swatch:${`var(${REGIME_VAR[r] || "--bg-raise-2"})`}">${esc(REGIME_LABEL[r] || r)}</span>`).join("");
 
-  // 차트
+  // ── 보유 종목·자산 배분 — 장중 스냅샷의 positions·cash 기반 ──
+  // 종목명: 매매 기록 → 유니버스 순으로 조회. 평단가: 매수 가중평균(평균법).
+  const nameMap = {};
+  for (const u of (meta.universe || [])) nameMap[u.ticker] = u.name;
+  for (const t of trades) nameMap[t.ticker] = t.name;
+  const avgCost = {};
+  const buyAgg = {};
+  for (const t of trades) {
+    if (t.side !== "buy") continue;
+    const a = buyAgg[t.ticker] || (buyAgg[t.ticker] = { amt: 0, qty: 0 });
+    a.amt += t.amount; a.qty += t.qty;
+  }
+  for (const [tk, a] of Object.entries(buyAgg)) if (a.qty > 0) avgCost[tk] = a.amt / a.qty;
+
+  const totalValue = (lastSnap && lastSnap.value) || metrics.lastValue;
+  const positions = (lastSnap && lastSnap.positions) || [];
+  const holdings = positions.map((p) => {
+    const mktval = p.qty * p.price;
+    const cost = avgCost[p.ticker];
+    return {
+      ticker: p.ticker, name: nameMap[p.ticker] || p.ticker,
+      mktval, weight: totalValue ? mktval / totalValue : 0,
+      pl: cost != null ? (p.price - cost) * p.qty : null,
+      ret: cost != null && cost > 0 ? p.price / cost - 1 : null,
+    };
+  }).sort((a, b) => b.mktval - a.mktval);
+  renderHoldings(holdings);
+
+  // 자산 배분 — 보유 종목별 + 현금성
+  const allocSlices = holdings.map((h, i) => ({
+    label: h.name, value: h.mktval, color: ALLOC_PALETTE[i % ALLOC_PALETTE.length],
+  }));
+  const cash = lastSnap && lastSnap.cash;
+  if (cash && cash > 0) allocSlices.push({ label: "현금성", value: cash, color: "#8aa0b8", cash: true });
+  renderAlloc($("#alloc"), allocSlices);
+
+  // 리스크 지표 · 기간별 수익률
+  renderRisk(metrics);
+  renderPeriods($("#period-list"), periodReturns(series, metrics.lastValue));
+
+  // 차트 — 운용 성과(현재 선택 구간)·자산 배분은 테마 전환 시 색을 다시 굽기 위해 재렌더 가능하게 분리
   const tooltip = $("#tooltip");
   const sliceRange = (range) => {
     if (range === "ALL") return series;
-    const n = { "1M": 21, "3M": 63, "6M": 126, "1Y": 252 }[range] || series.length;
+    if (range === "YTD") {
+      const y = series[series.length - 1].date.slice(0, 4);
+      const start = series.findIndex((p) => p.date.slice(0, 4) === y);
+      return series.slice(start >= 0 ? start : 0);
+    }
+    const n = { "1M": 21, "3M": 63, "6M": 126 }[range] || series.length;
     return series.slice(-Math.min(n, series.length));
   };
-  renderEquityChart($("#equity-chart"), series, tooltip);
+  let curRange = "ALL";
+  const drawCharts = () => {
+    renderEquityChart($("#equity-chart"), sliceRange(curRange), tooltip);
+    renderAlloc($("#alloc"), allocSlices);
+  };
+  drawCharts();
 
   $("#range-toggle").addEventListener("click", (e) => {
     const btn = e.target.closest("button[data-range]");
     if (!btn) return;
     for (const b of $("#range-toggle").children) b.classList.toggle("active", b === btn);
-    renderEquityChart($("#equity-chart"), sliceRange(btn.dataset.range), tooltip);
+    curRange = btn.dataset.range;
+    renderEquityChart($("#equity-chart"), sliceRange(curRange), tooltip);
   });
 
-  renderDrawdown($("#dd-chart"), metrics.dd);
-  $("#mdd-stat").innerHTML = `MDD <span class="neg">${fmtPct(metrics.mdd)}</span>`;
-
-  const mret = monthlyReturns(series);
-  renderMonthly($("#monthly-chart"), mret);
-  const winM = mret.filter((m) => m.ret > 0).length;
-  $("#monthly-stat").textContent = `${winM}/${mret.length}개월 플러스`;
+  // 테마 토글 — data-theme 전환·localStorage 저장·색 의존 차트 재렌더
+  initThemeToggle(drawCharts);
 
   // 매매 테이블
   const state = { trades, side: "all", month: "all", shown: PAGE };

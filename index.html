@@ -8,6 +8,17 @@
 <link rel="preload" href="assets/fonts/plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/plex-mono-600.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230b0f17'/><path d='M8 22 L14 13 L19 17 L25 8' stroke='%23ff4d57' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<!-- 테마 부트스트랩 — 스타일시트보다 먼저 data-theme 적용해 FOUC(플래시) 방지.
+     저장값 우선 → 없으면 OS 선호(prefers-color-scheme) → 기본 dark -->
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem("gazua-theme");
+      var sys = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", saved || sys);
+    } catch (e) { document.documentElement.setAttribute("data-theme", "dark"); }
+  })();
+</script>
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -21,6 +32,21 @@
     <span class="badge" id="mode-badge" hidden></span>
     <span class="badge badge-demo" id="demo-badge" hidden>샘플 데이터</span>
     <time class="updated" id="updated-at"></time>
+    <button class="theme-toggle" id="theme-toggle" type="button"
+            aria-label="다크/라이트 테마 전환" title="테마 전환">
+      <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true" width="18" height="18">
+        <circle cx="12" cy="12" r="4.2" fill="currentColor"/>
+        <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <line x1="12" y1="2" x2="12" y2="4.6"/><line x1="12" y1="19.4" x2="12" y2="22"/>
+          <line x1="2" y1="12" x2="4.6" y2="12"/><line x1="19.4" y1="12" x2="22" y2="12"/>
+          <line x1="4.9" y1="4.9" x2="6.8" y2="6.8"/><line x1="17.2" y1="17.2" x2="19.1" y2="19.1"/>
+          <line x1="4.9" y1="19.1" x2="6.8" y2="17.2"/><line x1="17.2" y1="6.8" x2="19.1" y2="4.9"/>
+        </g>
+      </svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true" width="18" height="18">
+        <path d="M20 14.5A8 8 0 1 1 9.5 4a6.3 6.3 0 0 0 10.5 10.5z" fill="currentColor"/>
+      </svg>
+    </button>
   </div>
 </header>
 
@@ -47,55 +73,71 @@
     <div class="brief-detail" id="briefing-body" hidden></div>
   </section>
 
-  <!-- ── KPI ───────────────────────────────────────────── -->
-  <section class="kpis reveal" aria-label="핵심 지표" id="kpis"></section>
+  <!-- ── KPI (히어로 3카드) ─────────────────────────────── -->
+  <section class="kpis kpis-hero reveal" aria-label="핵심 지표" id="kpis"></section>
 
-  <!-- ── 운용 성과 ─────────────────────────────────────── -->
-  <section class="panel reveal" aria-label="운용 성과">
-    <header class="panel-head">
-      <div>
-        <h2>운용 성과</h2>
-        <p class="panel-desc">포트폴리오 vs <span id="bench-name">벤치마크</span> · 배경 띠 = 레짐</p>
-      </div>
-      <div class="range-toggle" role="group" aria-label="기간 선택" id="range-toggle">
-        <button data-range="1M">1M</button>
-        <button data-range="3M">3M</button>
-        <button data-range="6M">6M</button>
-        <button data-range="1Y">1Y</button>
-        <button data-range="ALL" class="active">전체</button>
-      </div>
-    </header>
-    <div class="legend" id="equity-legend">
-      <span class="key key-port">포트폴리오</span>
-      <span class="key key-bench" id="legend-bench">벤치마크</span>
-      <span class="key-regimes" id="legend-regimes"></span>
-    </div>
-    <div class="chart-wrap" id="equity-chart" role="img" aria-label="포트폴리오와 벤치마크 누적 수익률 비교 차트"></div>
-    <p class="chart-hint">차트 위 마우스 이동 또는 키보드 포커스 후 ←/→ 키로 일별 값 탐색</p>
-    <div class="sr-only" id="chart-live" aria-live="polite"></div>
-  </section>
-
-  <!-- ── 드로다운 + 월별 ───────────────────────────────── -->
-  <div class="duo">
-    <section class="panel reveal" aria-label="드로다운">
+  <!-- ── 운용 성과 + 자산 배분 ─────────────────────────── -->
+  <div class="grid-perf">
+    <section class="panel reveal" aria-label="운용 성과">
       <header class="panel-head">
         <div>
-          <h2>드로다운</h2>
-          <p class="panel-desc">고점 대비 낙폭 (HWM 기준)</p>
+          <h2>운용 성과</h2>
+          <p class="panel-desc">포트폴리오 vs <span id="bench-name">벤치마크</span> · 배경 띠 = 레짐</p>
         </div>
-        <span class="panel-stat" id="mdd-stat"></span>
+        <div class="range-toggle" role="group" aria-label="기간 선택" id="range-toggle">
+          <button data-range="1M">1M</button>
+          <button data-range="3M">3M</button>
+          <button data-range="6M">6M</button>
+          <button data-range="YTD">YTD</button>
+          <button data-range="ALL" class="active">전체</button>
+        </div>
       </header>
-      <div class="chart-wrap chart-sm" id="dd-chart" role="img" aria-label="고점 대비 드로다운 차트"></div>
+      <div class="legend" id="equity-legend">
+        <span class="key key-port">포트폴리오</span>
+        <span class="key key-bench" id="legend-bench">벤치마크</span>
+        <span class="key-regimes" id="legend-regimes"></span>
+      </div>
+      <div class="chart-wrap" id="equity-chart" role="img" aria-label="포트폴리오와 벤치마크 누적 수익률 비교 차트"></div>
+      <p class="chart-hint">차트 위 마우스 이동 또는 키보드 포커스 후 ←/→ 키로 일별 값 탐색</p>
+      <div class="sr-only" id="chart-live" aria-live="polite"></div>
     </section>
-    <section class="panel reveal" aria-label="월별 수익률">
+
+    <section class="panel reveal" aria-label="자산 배분">
       <header class="panel-head">
         <div>
-          <h2>월별 수익률</h2>
-          <p class="panel-desc">월말 기준 수익률</p>
+          <h2>자산 배분</h2>
+          <p class="panel-desc">보유 종목별 평가금액 비중</p>
         </div>
-        <span class="panel-stat" id="monthly-stat"></span>
       </header>
-      <div class="chart-wrap chart-sm" id="monthly-chart" role="img" aria-label="월별 수익률 막대 차트"></div>
+      <div class="alloc" id="alloc"></div>
+    </section>
+  </div>
+
+  <!-- ── 보유 상위 종목 + 리스크 지표 + 기간별 수익률 ───── -->
+  <div class="grid-trio">
+    <section class="panel reveal" aria-label="보유 상위 종목">
+      <header class="panel-head">
+        <div><h2>보유 상위 종목</h2></div>
+        <span class="panel-stat" id="holdings-count"></span>
+      </header>
+      <div class="table-wrap table-wrap-h">
+        <table class="holdings" aria-live="polite">
+          <thead>
+            <tr><th>종목</th><th class="num">비중</th><th class="num">평가손익</th><th class="num">수익률</th></tr>
+          </thead>
+          <tbody id="holdings-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel reveal" aria-label="리스크 지표">
+      <header class="panel-head"><div><h2>리스크 지표</h2></div></header>
+      <dl class="risk-list" id="risk-list"></dl>
+    </section>
+
+    <section class="panel reveal" aria-label="기간별 수익률">
+      <header class="panel-head"><div><h2>기간별 수익률</h2></div></header>
+      <div class="period-list" id="period-list"></div>
     </section>
   </div>
 
