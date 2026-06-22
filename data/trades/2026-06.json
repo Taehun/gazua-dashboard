@@ -355,6 +355,36 @@
    "reason": "rebalance 0.097→0.083",
    "regime": "strong_bull",
    "liquidation": false
+  },
+  {
+   "ts": "2026-06-22T10:04:25+09:00",
+   "cycle_id": "2026-06-22-1",
+   "ticker": "009155",
+   "name": "삼성전기우",
+   "side": "sell",
+   "qty": 2,
+   "price": 878000.0,
+   "amount": 1756000,
+   "fee": 263,
+   "status": "filled",
+   "reason": "rebalance 0.089→0.075",
+   "regime": "strong_bull",
+   "liquidation": false
+  },
+  {
+   "ts": "2026-06-22T10:04:25+09:00",
+   "cycle_id": "2026-06-22-1",
+   "ticker": "069500",
+   "name": "KODEX 200",
+   "side": "buy",
+   "qty": 78,
+   "price": 148864.0,
+   "amount": 11611392,
+   "fee": 1742,
+   "status": "filled",
+   "reason": "rebalance 0.175→0.274",
+   "regime": "strong_bull",
+   "liquidation": false
   }
  ]
 }
