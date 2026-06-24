@@ -25,6 +25,14 @@
    "benchmark": 1330.51,
    "market_status": "OPEN",
    "positions": []
+  },
+  {
+   "ts": "2026-06-24T14:53:07+09:00",
+   "value": 105795412,
+   "cash": 105795412,
+   "benchmark": 1365.79,
+   "market_status": "OPEN",
+   "positions": []
   }
  ]
 }
