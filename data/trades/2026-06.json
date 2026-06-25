@@ -550,6 +550,36 @@
    "reason": "kill_switch 전량청산 (backfill)",
    "regime": "halt",
    "liquidation": true
+  },
+  {
+   "ts": "2026-06-25T10:04:09+09:00",
+   "cycle_id": "2026-06-25-rebal-backfill",
+   "ticker": "069500",
+   "name": "KODEX200",
+   "side": "buy",
+   "qty": 162,
+   "price": 144168.0,
+   "amount": 23355216,
+   "fee": 3503,
+   "status": "filled",
+   "reason": "rebalance",
+   "regime": null,
+   "liquidation": false
+  },
+  {
+   "ts": "2026-06-25T10:04:42+09:00",
+   "cycle_id": "2026-06-25-rebal-backfill",
+   "ticker": "122630",
+   "name": "KODEX레버리지",
+   "side": "buy",
+   "qty": 85,
+   "price": 220485.62,
+   "amount": 18741278,
+   "fee": 2811,
+   "status": "filled",
+   "reason": "rebalance",
+   "regime": null,
+   "liquidation": false
   }
  ]
 }
