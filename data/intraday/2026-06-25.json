@@ -1,0 +1,14 @@
+{
+ "schema_version": 1,
+ "date": "2026-06-25",
+ "snapshots": [
+  {
+   "ts": "2026-06-25T10:25:15+09:00",
+   "value": 105795412,
+   "cash": 105795412,
+   "benchmark": 1437.44,
+   "market_status": "OPEN",
+   "positions": []
+  }
+ ]
+}
