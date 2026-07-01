@@ -1,0 +1,51 @@
+{
+ "schema_version": 1,
+ "month": "2026-07",
+ "trades": [
+  {
+   "ts": "2026-07-01T10:05:53+09:00",
+   "cycle_id": "2026-07-01-scut398",
+   "ticker": "009150",
+   "name": "삼성전기",
+   "side": "sell",
+   "qty": 2,
+   "price": 2197000.0,
+   "amount": 4394000,
+   "fee": 659,
+   "status": "filled",
+   "reason": "sleeve_intraday_cut",
+   "regime": "halt",
+   "liquidation": true
+  },
+  {
+   "ts": "2026-07-01T10:05:53+09:00",
+   "cycle_id": "2026-07-01-scut398",
+   "ticker": "011070",
+   "name": "LG이노텍",
+   "side": "sell",
+   "qty": 5,
+   "price": 932100.0,
+   "amount": 4660500,
+   "fee": 699,
+   "status": "filled",
+   "reason": "sleeve_intraday_cut",
+   "regime": "halt",
+   "liquidation": true
+  },
+  {
+   "ts": "2026-07-01T10:05:53+09:00",
+   "cycle_id": "2026-07-01-scut398",
+   "ticker": "009155",
+   "name": "삼성전기우",
+   "side": "sell",
+   "qty": 4,
+   "price": 781000.0,
+   "amount": 3124000,
+   "fee": 469,
+   "status": "filled",
+   "reason": "sleeve_intraday_cut",
+   "regime": "halt",
+   "liquidation": true
+  }
+ ]
+}
