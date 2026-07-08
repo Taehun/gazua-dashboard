@@ -132,6 +132,12 @@
    "value": 98101302,
    "benchmark": 1230.16,
    "regime": "strong_bull"
+  },
+  {
+   "date": "2026-07-08",
+   "value": 98101302,
+   "benchmark": 1150.1,
+   "regime": "strong_bull"
   }
  ]
 }
