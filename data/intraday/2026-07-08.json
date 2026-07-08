@@ -17,6 +17,14 @@
    "benchmark": 1206.27,
    "market_status": "OPEN",
    "positions": []
+  },
+  {
+   "ts": "2026-07-08T12:42:39+09:00",
+   "value": 98257477,
+   "cash": 98257477,
+   "benchmark": 1208.45,
+   "market_status": "OPEN",
+   "positions": []
   }
  ]
 }
