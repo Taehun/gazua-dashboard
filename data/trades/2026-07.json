@@ -391,6 +391,51 @@
    "reason": "kill_switch tranche 3/3",
    "regime": "halt",
    "liquidation": true
+  },
+  {
+   "ts": "2026-07-09T12:01:46+09:00",
+   "cycle_id": "2026-07-09-liq8",
+   "ticker": "122630",
+   "name": "KODEX 레버리지",
+   "side": "sell",
+   "qty": 13,
+   "price": 137991.0,
+   "amount": 1793883,
+   "fee": 269,
+   "status": "filled",
+   "reason": "kill_switch tranche 1/3",
+   "regime": "halt",
+   "liquidation": true
+  },
+  {
+   "ts": "2026-07-09T12:01:46+09:00",
+   "cycle_id": "2026-07-09-liq8",
+   "ticker": "122630",
+   "name": "KODEX 레버리지",
+   "side": "sell",
+   "qty": 13,
+   "price": 137630.0,
+   "amount": 1789190,
+   "fee": 268,
+   "status": "filled",
+   "reason": "kill_switch tranche 2/3",
+   "regime": "halt",
+   "liquidation": true
+  },
+  {
+   "ts": "2026-07-09T12:01:46+09:00",
+   "cycle_id": "2026-07-09-liq8",
+   "ticker": "122630",
+   "name": "KODEX 레버리지",
+   "side": "sell",
+   "qty": 13,
+   "price": 137165.0,
+   "amount": 1783145,
+   "fee": 267,
+   "status": "filled",
+   "reason": "kill_switch tranche 3/3",
+   "regime": "halt",
+   "liquidation": true
   }
  ]
 }
