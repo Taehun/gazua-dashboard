@@ -39,6 +39,14 @@
      "price": 148290
     }
    ]
+  },
+  {
+   "ts": "2026-07-09T12:48:23+09:00",
+   "value": 95765931,
+   "cash": 95765931,
+   "benchmark": 1167.22,
+   "market_status": "OPEN",
+   "positions": []
   }
  ]
 }
