@@ -9,6 +9,25 @@
    "benchmark": 1042.41,
    "market_status": "OPEN",
    "positions": []
+  },
+  {
+   "ts": "2026-07-21T11:20:26+09:00",
+   "value": 89556812,
+   "cash": 53375452,
+   "benchmark": 1056.13,
+   "market_status": "OPEN",
+   "positions": [
+    {
+     "ticker": "069500",
+     "qty": 184,
+     "price": 106265
+    },
+    {
+     "ticker": "122630",
+     "qty": 145,
+     "price": 114680
+    }
+   ]
   }
  ]
 }
