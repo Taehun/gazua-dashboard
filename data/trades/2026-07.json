@@ -781,6 +781,51 @@
    "reason": "rebalance 0.000→0.182 [t3/3]",
    "regime": "strong_bull",
    "liquidation": false
+  },
+  {
+   "ts": "2026-07-22T10:02:49+09:00",
+   "cycle_id": "2026-07-22-1",
+   "ticker": "069500",
+   "name": "KODEX 200",
+   "side": "buy",
+   "qty": 52,
+   "price": 113830.0,
+   "amount": 5919160,
+   "fee": 888,
+   "status": "filled",
+   "reason": "rebalance 0.225→0.418 [t1/3]",
+   "regime": "bull",
+   "liquidation": false
+  },
+  {
+   "ts": "2026-07-22T10:02:49+09:00",
+   "cycle_id": "2026-07-22-1",
+   "ticker": "069500",
+   "name": "KODEX 200",
+   "side": "buy",
+   "qty": 52,
+   "price": 113636.0,
+   "amount": 5909072,
+   "fee": 886,
+   "status": "filled",
+   "reason": "rebalance 0.225→0.418 [t2/3]",
+   "regime": "bull",
+   "liquidation": false
+  },
+  {
+   "ts": "2026-07-22T10:02:49+09:00",
+   "cycle_id": "2026-07-22-1",
+   "ticker": "069500",
+   "name": "KODEX 200",
+   "side": "buy",
+   "qty": 53,
+   "price": 113480.0,
+   "amount": 6014440,
+   "fee": 902,
+   "status": "filled",
+   "reason": "rebalance 0.225→0.418 [t3/3]",
+   "regime": "bull",
+   "liquidation": false
   }
  ]
 }
