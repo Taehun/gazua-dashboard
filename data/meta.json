@@ -33,7 +33,22 @@
    "ticker": "252670",
    "name": "KODEX 200선물인버스2X",
    "role": "inverse_2x"
+  },
+  {
+   "ticker": "133690",
+   "name": "TIGER 미국나스닥100",
+   "role": "global_equity"
+  },
+  {
+   "ticker": "132030",
+   "name": "KODEX 골드선물(H)",
+   "role": "gold"
+  },
+  {
+   "ticker": "261240",
+   "name": "KODEX 미국달러선물",
+   "role": "fx_usd"
   }
  ],
- "updated_at": "2026-07-23T15:45:00+09:00"
+ "updated_at": "2026-07-24T08:02:04+09:00"
 }
