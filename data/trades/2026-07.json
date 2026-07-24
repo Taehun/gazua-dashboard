@@ -826,6 +826,21 @@
    "reason": "rebalance 0.225→0.418 [t3/3]",
    "regime": "bull",
    "liquidation": false
+  },
+  {
+   "ts": "2026-07-24T10:24:33+09:00",
+   "cycle_id": "2026-07-24-rebal-backfill",
+   "ticker": "261240",
+   "name": "KODEX미국달러선물",
+   "side": "buy",
+   "qty": 99,
+   "price": 15100.0,
+   "amount": 1494900,
+   "fee": 224,
+   "status": "filled",
+   "reason": "rebalance",
+   "regime": null,
+   "liquidation": false
   }
  ]
 }
