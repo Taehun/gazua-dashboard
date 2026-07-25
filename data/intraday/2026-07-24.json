@@ -23,8 +23,8 @@
   },
   {
    "ts": "2026-07-24T11:20:31+09:00",
-   "value": 89183049,
-   "cash": 35530104,
+   "value": 89182825,
+   "cash": 34034980,
    "benchmark": 1073.21,
    "market_status": "OPEN",
    "positions": [
@@ -37,13 +37,18 @@
      "ticker": "122630",
      "qty": 145,
      "price": 116575
+    },
+    {
+     "ticker": "261240",
+     "qty": 99,
+     "price": 15100
     }
    ]
   },
   {
    "ts": "2026-07-24T12:42:31+09:00",
-   "value": 88333614,
-   "cash": 35530104,
+   "value": 88333390,
+   "cash": 34034980,
    "benchmark": 1060.62,
    "market_status": "OPEN",
    "positions": [
@@ -56,13 +61,18 @@
      "ticker": "122630",
      "qty": 145,
      "price": 113680
+    },
+    {
+     "ticker": "261240",
+     "qty": 99,
+     "price": 15100
     }
    ]
   },
   {
    "ts": "2026-07-24T14:34:37+09:00",
-   "value": 88796984,
-   "cash": 35530104,
+   "value": 88796760,
+   "cash": 34034980,
    "benchmark": 1065.46,
    "market_status": "OPEN",
    "positions": [
@@ -75,13 +85,18 @@
      "ticker": "122630",
      "qty": 145,
      "price": 115300
+    },
+    {
+     "ticker": "261240",
+     "qty": 99,
+     "price": 15100
     }
    ]
   },
   {
    "ts": "2026-07-24T16:22:29+09:00",
-   "value": 88242119,
-   "cash": 35530104,
+   "value": 88241895,
+   "cash": 34034980,
    "benchmark": 1055.58,
    "market_status": "CLOSE",
    "positions": [
@@ -94,6 +109,11 @@
      "ticker": "122630",
      "qty": 145,
      "price": 113390
+    },
+    {
+     "ticker": "261240",
+     "qty": 99,
+     "price": 15100
     }
    ]
   }
