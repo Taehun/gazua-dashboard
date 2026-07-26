@@ -1,0 +1,30 @@
+{
+ "schema_version": 1,
+ "date": "2026-07-27",
+ "snapshots": [
+  {
+   "ts": "2026-07-27T08:48:17+09:00",
+   "value": 88242390,
+   "cash": 34034980,
+   "benchmark": 1055.58,
+   "market_status": "PREOPEN",
+   "positions": [
+    {
+     "ticker": "069500",
+     "qty": 341,
+     "price": 106365
+    },
+    {
+     "ticker": "122630",
+     "qty": 145,
+     "price": 113390
+    },
+    {
+     "ticker": "261240",
+     "qty": 99,
+     "price": 15105
+    }
+   ]
+  }
+ ]
+}
