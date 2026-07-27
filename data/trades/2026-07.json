@@ -841,6 +841,36 @@
    "reason": "rebalance",
    "regime": null,
    "liquidation": false
+  },
+  {
+   "ts": "2026-07-27T10:23:47+09:00",
+   "cycle_id": "2026-07-27-scut-backfill",
+   "ticker": "261240",
+   "name": "KODEX 미국달러선물",
+   "side": "sell",
+   "qty": 99,
+   "price": 15095.0,
+   "amount": 1494405,
+   "fee": 224,
+   "status": "filled",
+   "reason": "rebalance",
+   "regime": "halt",
+   "liquidation": true
+  },
+  {
+   "ts": "2026-07-27T10:45:46+09:00",
+   "cycle_id": "2026-07-27-rebal-backfill",
+   "ticker": "166400",
+   "name": "TIGER 200커버드콜5%OTM",
+   "side": "buy",
+   "qty": 82,
+   "price": 22260.0,
+   "amount": 1825320,
+   "fee": 274,
+   "status": "filled",
+   "reason": "rebalance",
+   "regime": null,
+   "liquidation": false
   }
  ]
 }
