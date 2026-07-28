@@ -67,6 +67,20 @@
      "price": 20740
     }
    ]
+  },
+  {
+   "ts": "2026-07-28T14:32:27+09:00",
+   "value": 83887896,
+   "cash": 83305776,
+   "benchmark": 948.68,
+   "market_status": "OPEN",
+   "positions": [
+    {
+     "ticker": "166400",
+     "qty": 28,
+     "price": 20790
+    }
+   ]
   }
  ]
 }
