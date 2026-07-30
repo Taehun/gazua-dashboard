@@ -222,6 +222,12 @@
    "value": 83750589,
    "benchmark": 848.92,
    "regime": "bull"
+  },
+  {
+   "date": "2026-07-30",
+   "value": 83750589,
+   "benchmark": 885.54,
+   "regime": "bull"
   }
  ]
 }
