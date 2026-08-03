@@ -1006,6 +1006,51 @@
    "reason": "kill_switch tranche 3/3",
    "regime": "halt",
    "liquidation": true
+  },
+  {
+   "ts": "2026-07-28T09:25:00+09:00",
+   "cycle_id": "2026-07-28-scut-backfill",
+   "ticker": "166400",
+   "name": "166400",
+   "side": "sell",
+   "qty": 1,
+   "price": 21448.0,
+   "amount": 21448,
+   "fee": 3,
+   "status": "filled",
+   "reason": "kill_switch 청산 t3 시한 후 늦은 체결 (backfill)",
+   "regime": "halt",
+   "liquidation": true
+  },
+  {
+   "ts": "2026-07-31T10:49:39+09:00",
+   "cycle_id": "2026-07-31-rebal-backfill",
+   "ticker": "166400",
+   "name": "166400",
+   "side": "buy",
+   "qty": 509,
+   "price": 22077.06,
+   "amount": 11237224,
+   "fee": 1686,
+   "status": "filled",
+   "reason": "rebalance",
+   "regime": null,
+   "liquidation": false
+  },
+  {
+   "ts": "2026-07-31T11:08:23+09:00",
+   "cycle_id": "2026-07-31-rebal-backfill",
+   "ticker": "069500",
+   "name": "069500",
+   "side": "buy",
+   "qty": 147,
+   "price": 101849.33,
+   "amount": 14971852,
+   "fee": 2246,
+   "status": "filled",
+   "reason": "rebalance",
+   "regime": null,
+   "liquidation": false
   }
  ]
 }
