@@ -62,7 +62,12 @@ def reconstruct():
     holdings = {}
     for f in sorted((DATA_DIR / "trades").glob("????-??.json")):
         for t in json.loads(f.read_text())["trades"]:
-            if t["status"] != "filled":
+            # 레코드 qty는 생성 시점부터 **체결 수량**이다(퍼블리셔가 filled_qty>0만
+            # 기록). "partial"은 주문 상태이지 체결의 부정이 아니므로 제외하면
+            # 실체결이 재구성에서 빠진다 — 2026-07-28 27주 partial 체결이 제외돼
+            # "28주 잔존" 착시를 만들고 진단을 오도한 실측 사고. 퍼블리셔
+            # 재구성(status 무시)과 의미론을 통일한다. qty 0/결측만 방어.
+            if not t.get("qty"):
                 continue
             sign = 1 if t["side"] == "buy" else -1
             holdings[t["ticker"]] = holdings.get(t["ticker"], 0) + sign * t["qty"]
