@@ -57,6 +57,20 @@
      "price": 21395
     }
    ]
+  },
+  {
+   "ts": "2026-08-03T16:43:31+09:00",
+   "value": 83904556,
+   "cash": 83305776,
+   "benchmark": 986.72,
+   "market_status": "CLOSE",
+   "positions": [
+    {
+     "ticker": "166400",
+     "qty": 28,
+     "price": 21385
+    }
+   ]
   }
  ]
 }
