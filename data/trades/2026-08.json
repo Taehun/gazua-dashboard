@@ -1,0 +1,36 @@
+{
+ "schema_version": 1,
+ "month": "2026-08",
+ "trades": [
+  {
+   "ts": "2026-08-04T10:03:31+09:00",
+   "cycle_id": "2026-08-04-1",
+   "ticker": "114800",
+   "name": "KODEX 인버스",
+   "side": "buy",
+   "qty": 3165,
+   "price": 1166.0,
+   "amount": 3690390,
+   "fee": 554,
+   "status": "filled",
+   "reason": "rebalance 0.000→0.135 [t2/3]",
+   "regime": "neutral",
+   "liquidation": false
+  },
+  {
+   "ts": "2026-08-04T10:03:31+09:00",
+   "cycle_id": "2026-08-04-1",
+   "ticker": "114800",
+   "name": "KODEX 인버스",
+   "side": "buy",
+   "qty": 3166,
+   "price": 1165.0,
+   "amount": 3688390,
+   "fee": 553,
+   "status": "filled",
+   "reason": "rebalance 0.000→0.135 [t3/3]",
+   "regime": "neutral",
+   "liquidation": false
+  }
+ ]
+}
