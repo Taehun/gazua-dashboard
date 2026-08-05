@@ -31,6 +31,51 @@
    "reason": "rebalance 0.000→0.135 [t3/3]",
    "regime": "neutral",
    "liquidation": false
+  },
+  {
+   "ts": "2026-08-05T10:51:51+09:00",
+   "cycle_id": "2026-08-05-1",
+   "ticker": "166400",
+   "name": "TIGER 200커버드콜5%OTM",
+   "side": "buy",
+   "qty": 166,
+   "price": 22401.0,
+   "amount": 3718566,
+   "fee": 558,
+   "status": "filled",
+   "reason": "rebalance 0.136→0.270 [t1/3]",
+   "regime": "neutral",
+   "liquidation": false
+  },
+  {
+   "ts": "2026-08-05T10:51:51+09:00",
+   "cycle_id": "2026-08-05-1",
+   "ticker": "166400",
+   "name": "TIGER 200커버드콜5%OTM",
+   "side": "buy",
+   "qty": 2,
+   "price": 22395.0,
+   "amount": 44790,
+   "fee": 7,
+   "status": "cancelled",
+   "reason": "rebalance 0.136→0.270 [t2/3]",
+   "regime": "neutral",
+   "liquidation": false
+  },
+  {
+   "ts": "2026-08-05T10:51:51+09:00",
+   "cycle_id": "2026-08-05-1",
+   "ticker": "166400",
+   "name": "TIGER 200커버드콜5%OTM",
+   "side": "buy",
+   "qty": 10,
+   "price": 22425.0,
+   "amount": 224250,
+   "fee": 34,
+   "status": "cancelled",
+   "reason": "rebalance 0.136→0.270 [t3/3]",
+   "regime": "neutral",
+   "liquidation": false
   }
  ]
 }
