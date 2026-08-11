@@ -91,6 +91,21 @@
    "reason": "rebalance 0.178→0.270",
    "regime": "neutral",
    "liquidation": false
+  },
+  {
+   "ts": "2026-08-11T10:27:22+09:00",
+   "cycle_id": "2026-08-11-1",
+   "ticker": "166400",
+   "name": "TIGER 200커버드콜5%OTM",
+   "side": "buy",
+   "qty": 1,
+   "price": 21170.0,
+   "amount": 21170,
+   "fee": 3,
+   "status": "cancelled",
+   "reason": "rebalance 0.190→0.270",
+   "regime": "neutral",
+   "liquidation": false
   }
  ]
 }
