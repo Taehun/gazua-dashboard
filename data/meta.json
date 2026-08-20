@@ -48,7 +48,12 @@
    "ticker": "261240",
    "name": "KODEX 미국달러선물",
    "role": "fx_usd"
+  },
+  {
+   "ticker": "459580",
+   "name": "KODEX KOFR금리액티브",
+   "role": "cash_proxy"
   }
  ],
- "updated_at": "2026-08-20T15:45:02+09:00"
+ "updated_at": "2026-08-21T08:02:16+09:00"
 }
