@@ -1,0 +1,30 @@
+{
+ "schema_version": 1,
+ "date": "2026-08-20",
+ "snapshots": [
+  {
+   "ts": "2026-08-20T11:02:40+09:00",
+   "value": 84915583,
+   "cash": 45281454,
+   "benchmark": 1084.89,
+   "market_status": "OPEN",
+   "positions": [
+    {
+     "ticker": "069500",
+     "qty": 147,
+     "price": 108965
+    },
+    {
+     "ticker": "114800",
+     "qty": 6331,
+     "price": 1014
+    },
+    {
+     "ticker": "166400",
+     "qty": 736,
+     "price": 23365
+    }
+   ]
+  }
+ ]
+}
