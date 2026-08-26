@@ -336,6 +336,12 @@
    "value": 84556919,
    "benchmark": 1056.65,
    "regime": "neutral"
+  },
+  {
+   "date": "2026-08-26",
+   "value": 84829879,
+   "benchmark": 1077.23,
+   "regime": "neutral"
   }
  ]
 }
