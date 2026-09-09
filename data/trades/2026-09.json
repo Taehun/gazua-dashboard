@@ -316,6 +316,66 @@
    "reason": "rebalance 0.360→0.640 [t3/3]",
    "regime": "neutral",
    "liquidation": false
+  },
+  {
+   "ts": "2026-09-09T11:13:37+09:00",
+   "cycle_id": "2026-09-09-1",
+   "ticker": "459580",
+   "name": "KODEX KOFR금리액티브",
+   "side": "sell",
+   "qty": 6,
+   "price": 1074205.0,
+   "amount": 6445230,
+   "fee": 967,
+   "status": "filled",
+   "reason": "rebalance 0.610→0.370 [t1/3]",
+   "regime": "neutral",
+   "liquidation": false
+  },
+  {
+   "ts": "2026-09-09T11:13:37+09:00",
+   "cycle_id": "2026-09-09-1",
+   "ticker": "459580",
+   "name": "KODEX KOFR금리액티브",
+   "side": "sell",
+   "qty": 6,
+   "price": 1074207.0,
+   "amount": 6445242,
+   "fee": 967,
+   "status": "filled",
+   "reason": "rebalance 0.610→0.370 [t2/3]",
+   "regime": "neutral",
+   "liquidation": false
+  },
+  {
+   "ts": "2026-09-09T11:13:37+09:00",
+   "cycle_id": "2026-09-09-1",
+   "ticker": "459580",
+   "name": "KODEX KOFR금리액티브",
+   "side": "sell",
+   "qty": 7,
+   "price": 1074205.0,
+   "amount": 7519435,
+   "fee": 1128,
+   "status": "filled",
+   "reason": "rebalance 0.610→0.370 [t3/3]",
+   "regime": "neutral",
+   "liquidation": false
+  },
+  {
+   "ts": "2026-09-09T11:13:37+09:00",
+   "cycle_id": "2026-09-09-1",
+   "ticker": "166400",
+   "name": "TIGER 200커버드콜5%OTM",
+   "side": "buy",
+   "qty": 11,
+   "price": 24686.27,
+   "amount": 271549,
+   "fee": 41,
+   "status": "cancelled",
+   "reason": "rebalance 0.186→0.270 [t2/3]",
+   "regime": "neutral",
+   "liquidation": false
   }
  ]
 }
