@@ -19,6 +19,8 @@ data/
   intraday/YYYY-MM-DD.json     # 장중 시간별 스냅샷 (90일 보존)
 tools/generate_demo_data.py  # 데모 데이터 재생성 (실데이터 백테스트 출력)
 tools/intraday_snapshot.py   # 시간별 스냅샷 수집기 (stock-agent 서버 cron)
+tools/verify_data.py         # data/ 스키마·불변식 검증 (exit 1 = 위반)
+.claude/skills/verify-*      # Claude Code 검증 스킬 (/verify-data, /verify-dashboard)
 ```
 
 **의존성 0** — 빌드 도구·외부 라이브러리·외부 요청 없음. 숫자용 모노 폰트(IBM Plex
@@ -54,6 +56,17 @@ commit & push 한다. 사람이 직접 편집하지 않는다.
 python3 -m http.server 8080
 # http://localhost:8080
 ```
+
+## 검증
+
+```bash
+python3 tools/verify_data.py        # data/ 무결성 (stdlib only)
+NODE_PATH="$(npm root -g)" node .claude/skills/verify-dashboard/scripts/smoke.cjs /tmp/gazua-smoke
+                                    # headless 렌더 스모크 (전역 playwright 필요)
+```
+
+Claude Code 에서는 `/verify-data`, `/verify-dashboard` 스킬이 위 스크립트를 돌리고 실패를
+고칠 때까지 반복한다 (CLAUDE.md 가 변경 종류별로 자동 실행을 지시).
 
 ## 데이터 스키마 (v1)
 
