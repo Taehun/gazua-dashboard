@@ -498,6 +498,12 @@
    "value": 86596644,
    "benchmark": null,
    "regime": "neutral"
+  },
+  {
+   "date": "2026-10-02",
+   "value": 86771404,
+   "benchmark": null,
+   "regime": "neutral"
   }
  ]
 }
